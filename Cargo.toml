@@ -8,3 +8,7 @@ edition = "2018"
 [dependencies]
 anyhow = "1.0.63"
 clap = { version = "3.2.20", features = ["derive"] }
+nom = "7.1.1"
+noodles = { version = "0.26.0", features = ["bam"] }
+flate2 = { version = "1.0.17", features = ["zlib"], default-features = false }
+regex = "1.6.0"
