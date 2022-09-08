@@ -22,17 +22,20 @@ use std::path::PathBuf;
 )]
 struct Opts {
   /// Sets the level of verbosity
-  #[clap(short, long)]
-  verbose: bool,
+  // #[clap(short, long)]
+  // verbose: bool,
 
   ///
-  #[clap(short, long)]
-  edam: bool,
+  // #[clap(short, long)]
+  // edam: bool,
 
   /// perform line by line check
-  #[clap(short, long)]
-  tidy: bool,
+  // #[clap(short, long)]
+  // tidy: bool,
 
+  // /// display license info
+  // #[clap(short, long)]
+  // license: bool,
   /// input file
   #[clap(name = "FILE")]
   input_file_path: PathBuf,
@@ -41,6 +44,11 @@ struct Opts {
 fn main() -> Result<()> {
   // parse arguments and options with clap
   let opts = Opts::parse();
+
+  // if opts.license {
+  //   stdout_license();
+  //   return Ok(());
+  // }
 
   let is_binary: bool;
 
@@ -338,4 +346,9 @@ struct BGZFFileHeader {
   crc32: u32,
   /// Input SIZE
   i_size: u32,
+}
+
+fn stdout_license() {
+  println!("Copyright [2022] [@suecharo]");
+  println!("This software is released under Apache License 2.0");
 }
