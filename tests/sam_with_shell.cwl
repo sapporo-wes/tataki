@@ -6,21 +6,25 @@ requirements:
     dockerPull: quay.io/biocontainers/samtools:1.18--h50ea8bc_1
   InlineJavascriptRequirement: {}
 
-baseCommand: [samtools, head]
+baseCommand: [bash, -c]
 
-successCodes: [0, 139]
+arguments:
+  - valueFrom: |
+      samtools head $(inputs.input_file.path) > /dev/null 2>&1
+      echo $? > exit_code.txt
+    shellQuote: false
 
 inputs:
   input_file:
     type: File
-    inputBinding:
-      position: 1
 
 outputs:
   result:
     type: boolean
     outputBinding:
+      glob: exit_code.txt
+      loadContents: true
       outputEval: |
         ${
-          return runtime.exitCode === 0;
+          return self[0].contents.trim() === "0";
         }
