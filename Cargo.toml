@@ -1,15 +1,15 @@
 [package]
 name = "tataki"
 version = "0.1.0"
-edition = "2018"
+edition = "2021"
 license = "Apache-2.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.63"
-clap = { version = "3.2.20", features = ["derive"] }
+clap = { version = "4.4.7", features = ["derive"] }
 nom = "7.1.1"
-noodles = { version = "0.26.0", features = ["bam"] }
+noodles = { version = "0.57.0", features = ["bam"] }
 flate2 = { version = "1.0.17", features = ["zlib"], default-features = false }
 regex = "1.6.0"
+anyhow = "1.0.75"

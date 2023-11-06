@@ -1,5 +1,7 @@
 # Tataki
 
+**This repository is currently under development.**
+
 Tataki is a command line tool for detecting life science data types.
 
 Currently supports the following file types.
@@ -9,8 +11,6 @@ Currently supports the following file types.
 - fastq
 - fastq.gz
 - bed
-
-Notes: Under development and could perform poorly on larger files.
 
 ## Installation
 
@@ -24,10 +24,9 @@ chmod +x ./tataki
 
 Or, you could clone the repository, then run `cargo build`.
 
-
 ## Example
 
-```
+```txt
 $ tataki bed12.bed
 bed12.bed: 12 column BED file
 $ tataki fastq01.fq.gz 
@@ -39,6 +38,7 @@ fastq01.fq.gz: gzip compressed fastq file
 - add support for more file types, such as .sam, .vcf, .gtf, etc.
 - add support for EDAM ontology.
 - implement fast mode with which the tool could perform well on larger files.
+
 ## License
 
 [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0). See the [LICENSE](https://github.com/suecharo/tataki/blob/main/LICENSE).
