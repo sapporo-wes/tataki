@@ -17,10 +17,15 @@ inputs:
       position: 1
 
 outputs:
+  label:
+    type: string
+    outputBinding:
+      outputEval: '${ return "sam" }'
+  edam_id:
+    type: string
+    outputBinding:
+      outputEval: '${ return "format_2573" }'
   result:
     type: boolean
     outputBinding:
-      outputEval: |
-        ${
-          return runtime.exitCode === 0;
-        }
+      outputEval: '${ return runtime.exitCode === 0 }'

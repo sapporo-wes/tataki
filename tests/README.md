@@ -27,6 +27,15 @@ or (using remote file)
 
 ```bash
 docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock -v /tmp:/tmp -v "$PWD":"$PWD" -w "$PWD" quay.io/commonwl/cwltool:3.1.20230906142556 ./sam.cwl --input_file https://raw.githubusercontent.com/samtools/samtools/develop/examples/toy.sam
+
+$ docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock -v /tmp:/tmp -v "$PWD":"$PWD" -w "$PWD" quay.io/commonwl/cwltool:3.1.20230906142556 ./sam.cwl --input_file https://raw.githubusercontent.com/samtools/samtools/develop/examples/toy.sam
+...
+INFO [job sam.cwl] completed success
+{
+    "edam_id": "format_2573",
+    "label": "sam",
+    "result": true
+}INFO Final process status is success
 ```
 
 sam.cwl に fasta file を入力したら
@@ -35,6 +44,8 @@ sam.cwl に fasta file を入力したら
 docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock -v /tmp:/tmp -v "$PWD":"$PWD" -w "$PWD" quay.io/commonwl/cwltool:3.1.20230906142556 ./sam.cwl --input_file https://raw.githubusercontent.com/samtools/samtools/develop/examples/toy.fa
 INFO [job sam.cwl] completed success
 {
+    "edam_id": "format_2573",
+    "label": "sam",
     "result": false
 }INFO Final process status is success
 ```
