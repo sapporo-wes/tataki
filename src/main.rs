@@ -23,9 +23,6 @@ fn main() -> Result<()> {
     // parse arguments and options with clap
     let args = args::Args::parse();
     logger::init_logger(args.verbose, args.quiet);
-    info!("tataki started");
-    debug!("args: {:?}", args);
-    debug!("output format: {:?}", args.get_output_format());
 
     let config: Config = match &args.conf {
         None => {
@@ -42,6 +39,9 @@ fn main() -> Result<()> {
     if args.dry_run {
         run::dry_run(config)?;
     } else {
+        info!("tataki started");
+        debug!("args: {:?}", args);
+        debug!("output format: {:?}", args.get_output_format());
         run::run(config, args)?;
     }
 
