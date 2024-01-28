@@ -1,0 +1,65 @@
+name: deploy
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  build_binary:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+
+      - name: "Cache builder image"
+        id: cache-builder-image
+        uses: actions/cache@v3
+        with:
+          path: musl-builder-image-x86_64
+          key: musl-builder-image-x86_64
+
+      - name: "Pull and save builder image"
+        if: steps.cache-builder-image.outputs.cache-hit != 'true'
+        run: |
+          docker pull messense/rust-musl-cross:x86_64-musl
+          docker save messense/rust-musl-cross:x86_64-musl -o musl-builder-image-x86_64
+
+      - name: "Load builder image"
+        run: docker load -i musl-builder-image-x86_64
+
+      - name: "Cache Rust"
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: "Build binary"
+        run: docker run --rm -u root -v "$(pwd)":/home/rust/src messense/rust-musl-cross:x86_64-musl cargo build --release
+
+      - name: "Upload binary"
+        uses: actions/upload-artifact@v3
+        with:
+          name: tataki
+          path: target/x86_64-unknown-linux-musl/release/tataki
+
+  create_release:
+    needs: [build_binary]
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Download tataki binary"
+        uses: actions/download-artifact@v3
+        with:
+          name: tataki
+      - name: "Release"
+        run: gh release --repo ${{ github.repository }} create ${{ github.ref_name }} --title ${{ github.ref_name }} --generate-notes tataki
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
