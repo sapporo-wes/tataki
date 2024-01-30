@@ -143,6 +143,6 @@ order:
 The contents of this deposit are basically licensed under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0). See the [LICENSE](https://github.com/sapporo-wes/tataki/blob/main/LICENSE).
 However, the following files are licensed under Creative Commons Attribution Share Alike 4.0 International (<https://spdx.org/licenses/CC-BY-SA-4.0.html>).
 
-- ./src/EDAM_1.25.id_label.csv
+- `./src/EDAM_1.25.id_label.csv`
   - Source: <https://github.com/edamontology/edamontology/releases/download/1.25/EDAM_1.25.csv>
   - Removed the lines not related to 'format' and the columns other than 'Preferred Label' and 'Class ID'
