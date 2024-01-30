@@ -1,11 +1,7 @@
 use anyhow::Result;
 use bimap::BiMap;
 use lazy_static::lazy_static;
-use log::warn;
-use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, f32::consts::E};
-
-use crate::OutputFormat;
+use serde::Deserialize;
 
 lazy_static! {
     #[derive(Debug)]
@@ -15,9 +11,7 @@ lazy_static! {
 #[derive(Debug)]
 // A struct to validate user specified EDAM information.
 pub struct EdamMap {
-    // TODO これはBiMapに変えたのであとで消す
-    // Map of EDAM ID and Edam struct instance whose id is the key.
-    // label_to_edam: HashMap<String, Edam>,
+    // A bimap of EDAM ID and EDAM label.
     bimap_id_label: BiMap<String, String>,
 }
 
@@ -28,10 +22,9 @@ impl EdamMap {
             .has_headers(true)
             .from_reader(&edam_str[..]);
 
-        let mut edam_map: HashMap<String, Edam> = HashMap::new();
         let mut bimap = BiMap::new();
         for result in rdr.deserialize::<Edam>() {
-            // resultがErrの時はpanicする
+            // panic if this fails to read EDAM table.
             match result {
                 Ok(record) => {
                     // edam_map.insert(record.label.clone(), record.clone());
@@ -54,7 +47,7 @@ impl EdamMap {
     }
 
     // check if the given pair of id and label exists in the EDAM table.
-    pub fn check_id_and_label(&self, id: &str, label: &str) -> Result<bool> {
+    pub fn correspondence_check_id_and_label(&self, id: &str, label: &str) -> Result<bool> {
         let label_from_bimap = self.bimap_id_label.get_by_left(id);
 
         match label_from_bimap {

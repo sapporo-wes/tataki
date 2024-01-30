@@ -1,8 +1,7 @@
 use anyhow::{anyhow, bail, Context, Result};
-use log::{debug, info, warn};
+use log::{debug, info};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::io::BufRead;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use tempfile::{Builder, NamedTempFile, TempDir};
@@ -11,8 +10,8 @@ use crate::edam;
 use crate::run::ModuleResult;
 
 const CWL_INSPECTOR_DOCKER_IMAGE: &str = "ghcr.io/tom-tan/cwl-inspector:v0.1.1";
-const LABEL_KEY: &str = "LABEL";
-const EDAM_ID_KEY: &str = "EDAM_ID";
+const LABEL_KEY: &str = "label";
+const EDAM_ID_KEY: &str = "edam_id";
 
 pub fn invoke(
     cwl_file_path: &Path,
@@ -36,8 +35,8 @@ pub fn invoke(
         .with_context(|| format!("Failed to canonicalize {}", cwl_file_path.display()))?;
 
     // get the EDAM_ID and LABEL from the comment lines in the CWL file.
-    let mut cwl_edam_info = get_id_and_label_from_cwl_file(&cwl_file_path)?;
-    validate_and_correct_id_and_label(&mut cwl_edam_info, &cwl_file_path)?;
+    let mut cwl_metadatas = get_metadata_fields_from_cwl_file(&cwl_file_path)?;
+    validate_id_and_label(&mut cwl_metadatas, &cwl_file_path)?;
 
     // create a docker commandline from the CWL file using cwl-inspector.
     let inspector_process = std::process::Command::new("docker")
@@ -115,6 +114,7 @@ pub fn invoke(
         cwl_docker_args_before_v.join(" "),
         cwl_docker_args_after_v.join(" ")
     );
+
     let cwl_docker_process = std::process::Command::new(cwl_docker_commandname)
         .args(cwl_docker_args_before_v)
         .args(cwl_docker_args_after_v)
@@ -123,8 +123,8 @@ pub fn invoke(
         .output()?;
 
     let mut module_result = ModuleResult::with_result(
-        cwl_edam_info.get(LABEL_KEY).map(|s| s.to_string()),
-        cwl_edam_info.get(EDAM_ID_KEY).map(|s| s.to_string()),
+        cwl_metadatas.get(LABEL_KEY).map(|s| s.to_string()),
+        cwl_metadatas.get(EDAM_ID_KEY).map(|s| s.to_string()),
     );
 
     module_result.set_is_ok(cwl_docker_process.status.success());
@@ -136,105 +136,6 @@ pub fn invoke(
     Ok(module_result)
 }
 
-fn get_id_and_label_from_cwl_file(cwl_file_path: &Path) -> Result<HashMap<String, String>> {
-    // # EDAM_ID=format_2573
-    // # LABEL=sam
-    // このようになっているファイルから、EDAM_IDとLABELを取得する。
-    let file = std::fs::File::open(cwl_file_path)?;
-    let reader = std::io::BufReader::new(file);
-
-    let mut parameters = HashMap::new();
-    for line_result in reader.lines() {
-        let line = line_result?;
-        if line.starts_with('#') {
-            if let Some((key, value)) = parse_parameter_in_cwl_comment_line(&line)? {
-                let key = key.to_uppercase();
-                if key == EDAM_ID_KEY || key == LABEL_KEY {
-                    parameters.insert(key, value);
-                }
-            }
-        }
-    }
-
-    Ok(parameters)
-}
-
-fn validate_and_correct_id_and_label(
-    parameters: &mut HashMap<String, String>,
-    cwl_file_path: &Path,
-) -> Result<()> {
-    // if both EDAM_ID and LABEL are present, check LABEL are valid.
-    if parameters.contains_key(EDAM_ID_KEY) && parameters.contains_key(LABEL_KEY) {
-        let id = parameters.get(EDAM_ID_KEY).unwrap();
-        let label = parameters.get(LABEL_KEY).unwrap();
-        if edam::EDAM_MAP.check_id_and_label(id, label)? {
-            warn!(
-                "The specified pair of EDAM_ID and label in the CWL file does not exist in the EDAM table. Please check the ID and label: EDAM_ID={}, LABEL={}, CWL file={}",
-                id,
-                label,
-                cwl_file_path.display()
-            );
-            parameters.remove(LABEL_KEY);
-        }
-    }
-    // if only LABEL is present, get the ID from the label if possible.
-    else if parameters.contains_key(LABEL_KEY) {
-        let label = parameters.get(LABEL_KEY).unwrap();
-        let id = edam::EDAM_MAP.get_id_from_label(label);
-        if let Some(id) = id {
-            debug!(
-                "The EDAM ID to the specified label is found: EDAM_ID={}, LABEL={}, CWL file={}",
-                id,
-                label,
-                cwl_file_path.display()
-            );
-            parameters.insert(EDAM_ID_KEY.to_string(), id);
-        } else {
-            info!(
-                "The specified label is not found in EDAM table. Assuming it is custom operation name...: LABEL={}, CWL file={}",
-                label,
-                cwl_file_path.display()
-            );
-        }
-    }
-    // if only ID is present, respect it and do nothing
-    else if parameters.contains_key(EDAM_ID_KEY) {
-        // do nothing
-    }
-    // if both EDAM_ID and LABEL are not present, return error.
-    else {
-        bail!(
-            "Neither EDAM_ID nor LABEL is present in the CWL file: {}",
-            cwl_file_path.display()
-        );
-    }
-    Ok(())
-}
-
-fn parse_parameter_in_cwl_comment_line(line: &str) -> Result<Option<(String, String)>> {
-    let line = line.trim_start_matches('#').trim();
-    let parts: Vec<&str> = line.split('=').map(|part| part.trim()).collect();
-    if parts.len() == 2 {
-        let key = parts[0].to_string();
-        let mut value = parts[1].to_string();
-
-        // if the value is quoted, remove the quotes.
-        if (value.starts_with('\"') && value.ends_with('\"') && value.len() > 1)
-            || (value.starts_with('\'') && value.ends_with('\'') && value.len() > 1)
-        {
-            value = value.trim_matches(|c| c == '\"' || c == '\'').to_string();
-        }
-
-        Ok(Some((key, value)))
-    } else {
-        warn!(
-            "Failed to parse a parameter in a CWL comment line: {}",
-            line
-        );
-        Ok(None)
-    }
-}
-
 fn docker_path() -> Result<PathBuf> {
     let process = std::process::Command::new("which")
         .arg("docker")
@@ -243,12 +144,83 @@ fn docker_path() -> Result<PathBuf> {
         .output()?;
 
     if process.status.success() {
-        // processの結果をPathBufに変換する
         let path = String::from_utf8(process.stdout)?;
         Ok(PathBuf::from(path.trim()))
     } else {
         bail!("Please make sure that the docker command is present in your PATH");
     }
+}
+
+#[derive(Deserialize, Debug)]
+struct CwlMetadata {
+    #[serde(flatten)]
+    entries: HashMap<String, serde_yaml::Value>,
+    #[serde(rename = "$namespaces")]
+    namespaces: HashMap<String, String>,
+}
+
+fn get_metadata_fields_from_cwl_file(cwl_file_path: &Path) -> Result<HashMap<String, String>> {
+    // Extract the EDAM_ID and LABEL from metadata in the CWL file. ex:
+    // $namespaces:
+    //   tataki: https://tataki.io/
+    // tataki:edam_id: http://edamontology.org/format_2573
+    // tataki:label: sam
+    let file = std::fs::File::open(cwl_file_path)?;
+    let reader = std::io::BufReader::new(file);
+    let cwl_metadata: CwlMetadata = serde_yaml::from_reader(reader)
+        .with_context(|| format!("Failed to parse the CWL file: {}", cwl_file_path.display()))?;
+
+    let mut extracted_fields: HashMap<String, String> = HashMap::new();
+    let (prefix, _) = cwl_metadata.namespaces.iter().next().ok_or_else(|| {
+        anyhow!(
+            "The CWL file does not have the $namespaces field: {}",
+            cwl_file_path.display()
+        )
+    })?;
+    if prefix != "tataki" {
+        bail!(
+            "The CWL file does not have the 'tataki' namespace: {}",
+            cwl_file_path.display()
+        );
+    }
+    for (key, value) in cwl_metadata.entries.iter() {
+        if let Some(stripped_key) = key.strip_prefix(&format!("{}:", prefix)) {
+            let value = serde_yaml::to_string(value)?;
+            let value = value.trim_end();
+            extracted_fields.insert(stripped_key.to_string(), value.to_owned());
+        }
+    }
+
+    Ok(extracted_fields)
+}
+
+fn validate_id_and_label(
+    parameters: &mut HashMap<String, String>,
+    cwl_file_path: &Path,
+) -> Result<()> {
+    // if both EDAM_ID and LABEL are present, check LABEL are valid.
+    if parameters.contains_key(EDAM_ID_KEY) && parameters.contains_key(LABEL_KEY) {
+        let id = parameters.get(EDAM_ID_KEY).unwrap();
+        let label = parameters.get(LABEL_KEY).unwrap();
+        if !edam::EDAM_MAP.correspondence_check_id_and_label(id, label)? {
+            info!(
+                "The specified edam_id and label do not correspond with each other. Assuming it is a custom label...: edam_id={}, label={}, CWL file={}",
+                id,
+                label,
+                cwl_file_path.display()
+            );
+        }
+    }
+    // if both EDAM_ID and LABEL are not present, return error.
+    else {
+        bail!(
+            "The CWL file is missing required fields under the 'tataki' namespace. Please ensure that both 'tataki.{}' and 'tataki.{}' fields are included in the file.: CWL file={}",
+            EDAM_ID_KEY,
+            LABEL_KEY,
+            cwl_file_path.display()
+        );
+    }
+    Ok(())
 }
 
 #[derive(Serialize, Deserialize, Debug)]

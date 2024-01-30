@@ -1,10 +1,9 @@
-use anyhow::{bail, ensure, Result};
+use anyhow::{ensure, Result};
 use chrono::Local;
-use reqwest;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::time;
 use std::{fs::File, io::Write};
-use tempfile::{Builder, NamedTempFile, TempDir};
+use tempfile::TempDir;
 use url::Url;
 
 pub fn create_temporary_dir(cache_dir: &Option<PathBuf>) -> Result<TempDir> {
@@ -23,7 +22,7 @@ pub fn create_temporary_dir(cache_dir: &Option<PathBuf>) -> Result<TempDir> {
     }
 }
 
-pub fn download_from_url(url: Url, temp_dir: &TempDir) -> Result<PathBuf> {
+pub fn download_from_url(url: &Url, temp_dir: &TempDir) -> Result<PathBuf> {
     // timeout in 60 * 60 seconds
     let client = reqwest::blocking::Client::builder()
         .timeout(time::Duration::from_secs(3600))

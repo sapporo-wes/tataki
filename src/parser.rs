@@ -2,6 +2,7 @@ mod bam;
 mod bcf;
 mod bed;
 mod cram;
+mod empty;
 mod fasta;
 mod fastq;
 mod gff3;
@@ -16,12 +17,12 @@ use std::path::Path;
 use crate::run::ModuleResult;
 
 pub trait Parser {
-    /// Determine whether the given file is the format that this parser can parse.
-    /// If the given file is the format that this parser can parse, return `Ok(ModuleResult)`.
-    /// Otherwise, return `Err(anyhow::Error)` and the error message should provide the reason why this parser cannot parse the given file.
-    /// To create `ModuleResult`, use `ModuleResult::with_result()` which takes `is_ok`, `label`, `id`, and `error_message` as arguments.
-    /// `is_ok`: true if the given file is the format that this parser can parse, false otherwise.
-    /// `label`:  
+    /// Determine if the provided file is in a format that this parser can interpret.
+    /// If the parser can successfully interpret the file, return `Ok(ModuleResult)`.
+    /// If it does not, return `Err(anyhow::Error)`, including an error message that specifies the reasons why the parser cannot process the file.
+    /// To construct `ModuleResult`, utilize `ModuleResult::with_result()` which requires `label` and `id` as parameters.
+    /// `id`: EDAM Class ID
+    /// `label`: EDAM Preferred Label
     fn determine(&self, input_path: &Path) -> Result<ModuleResult>;
 }
 
@@ -32,6 +33,7 @@ pub fn from_str_to_parser(module_name: &str) -> Result<Box<dyn Parser>> {
         "bcf" => Ok(Box::new(bcf::Bcf)),
         "bed" => Ok(Box::new(bed::Bed)),
         "cram" => Ok(Box::new(cram::Cram)),
+        "empty" => Ok(Box::new(empty::Empty)),
         "fasta" => Ok(Box::new(fasta::Fasta)),
         "fastq" => Ok(Box::new(fastq::Fastq)),
         "gff3" => Ok(Box::new(gff3::Gff3)),
@@ -43,8 +45,7 @@ pub fn from_str_to_parser(module_name: &str) -> Result<Box<dyn Parser>> {
     }
 }
 
-// Result<()>ではなく、Result<ModuleResult>を返すようにしているのは、
-// determine()自体の成功可否をModuleResult.is_ok、他の処理の成功可否をOk/Errで表現できるようにするため
+// Return the result of determine() using Ok(ModuleResult), and return errors in other parts using Err.
 pub fn invoke(module_name: &str, target_file_path: &Path) -> Result<ModuleResult> {
     info!("Invoking parser {}", module_name);
 

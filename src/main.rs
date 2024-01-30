@@ -6,17 +6,13 @@ mod logger;
 mod parser;
 mod run;
 
-use anyhow::{anyhow, Result};
+use anyhow::{Context, Result};
 use clap::Parser;
-use log::{debug, error, info, warn};
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use log::{debug, info};
 use std::fs::File;
 use std::io::BufReader;
-use std::process::exit;
 
 use crate::args::OutputFormat;
-use crate::edam::EDAM_MAP;
 use crate::run::Config;
 
 fn main() -> Result<()> {
@@ -32,7 +28,12 @@ fn main() -> Result<()> {
         Some(path) => {
             let config_file = File::open(path)?;
             let reader = BufReader::new(config_file);
-            serde_yaml::from_reader(reader)?
+            serde_yaml::from_reader(reader).with_context(|| {
+                format!(
+                    "Failed to parse the config file: {}",
+                    path.to_str().unwrap(),
+                )
+            })?
         }
     };
 
@@ -40,8 +41,8 @@ fn main() -> Result<()> {
         run::dry_run(config)?;
     } else {
         info!("tataki started");
-        debug!("args: {:?}", args);
-        debug!("output format: {:?}", args.get_output_format());
+        debug!("Args: {:?}", args);
+        debug!("Output format: {:?}", args.get_output_format());
         run::run(config, args)?;
     }
 

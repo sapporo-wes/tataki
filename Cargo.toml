@@ -1,8 +1,10 @@
 [package]
 name = "tataki"
+authors = ["Tazro Ohta (tazro.ohta@chiba-u.jp)"]
 version = "0.2.0"
 edition = "2021"
-license = "Apache-2.0"
+repository = "https://github.com/sapporo-wes/tataki"
+license = "apache-2.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

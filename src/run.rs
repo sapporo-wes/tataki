@@ -1,7 +1,6 @@
-use anyhow::{anyhow, bail, Result};
-use log::{debug, error, info, warn};
-use serde::ser::SerializeMap;
-use serde::{Deserialize, Serialize, Serializer};
+use anyhow::{anyhow, bail, Context, Result};
+use log::{debug, error, info};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use tempfile::{NamedTempFile, TempDir};
@@ -15,36 +14,15 @@ use crate::OutputFormat;
 
 // Struct to store the result of Parser invocation and ExtTools invocation.
 #[derive(Debug)]
-// TODO あとでこのpub外す
 pub struct ModuleResult {
     target_file_path: PathBuf,
     is_ok: bool,
     label: Option<String>,
     id: Option<String>,
     error_message: Option<String>,
-    is_edam: bool,
-}
-
-// TODO こいついらなくなったかも。
-impl Serialize for ModuleResult {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut state = serializer.serialize_map(Some(2))?;
-
-        // Someの中身がNoneの場合は、serialize_entryしない。
-
-        state.serialize_entry(
-            &self.target_file_path,
-            &HashMap::from([("id", &self.id), ("label", &self.label)]),
-        )?;
-        state.end()
-    }
 }
 
 impl ModuleResult {
-    // TODO こいつで書き直す
     pub fn with_result(label: Option<String>, id: Option<String>) -> Self {
         Self {
             target_file_path: PathBuf::new(),
@@ -52,7 +30,6 @@ impl ModuleResult {
             label,
             id,
             error_message: None,
-            is_edam: true,
         }
     }
 
@@ -67,22 +44,76 @@ impl ModuleResult {
     pub fn set_target_file_path(&mut self, target_file_path: PathBuf) {
         self.target_file_path = target_file_path;
     }
+
+    pub fn create_module_results_string(
+        module_results: &[ModuleResult],
+        format: OutputFormat,
+    ) -> Result<String> {
+        fn csv_serialize(module_results: &[ModuleResult], delimiter: u8) -> Result<String> {
+            let mut data = Vec::new();
+            {
+                let mut writer = csv::WriterBuilder::new()
+                    .delimiter(delimiter)
+                    .from_writer(&mut data);
+
+                writer.write_record(["File Path", "Edam ID", "Label"])?;
+
+                for module_result in module_results.iter() {
+                    let target_file_path = &module_result.target_file_path;
+                    writer.serialize((
+                        target_file_path.to_str().with_context(|| {
+                            format!(
+                                "Failed to convert the file path to a string: {}",
+                                target_file_path.display()
+                            )
+                        })?,
+                        &module_result.id,
+                        &module_result.label,
+                    ))?;
+                }
+            }
+
+            let data_str = String::from_utf8_lossy(&data);
+            Ok(data_str.into_owned())
+        }
+
+        match format {
+            OutputFormat::Yaml => {
+                let mut serialized_map = HashMap::new();
+                for module_result in module_results {
+                    let target_file_path = &module_result.target_file_path;
+                    serialized_map.insert(
+                        target_file_path.clone(),
+                        HashMap::from([("id", &module_result.id), ("label", &module_result.label)]),
+                    );
+                }
+
+                let yaml_str = serde_yaml::to_string(&serialized_map)?;
+                Ok(yaml_str)
+            }
+            OutputFormat::Tsv => csv_serialize(module_results, b'\t'),
+            OutputFormat::Csv => csv_serialize(module_results, b','),
+            OutputFormat::Json => {
+                let mut serialized_map = HashMap::new();
+                for module_result in module_results {
+                    let target_file_path = &module_result.target_file_path;
+                    serialized_map.insert(
+                        target_file_path.clone(),
+                        HashMap::from([("id", &module_result.id), ("label", &module_result.label)]),
+                    );
+                }
+
+                let json_str = serde_json::to_string(&serialized_map)?;
+                Ok(json_str)
+            }
+        }
+    }
 }
 
 // Struct to deserialize the contents of the conf file.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
-    order: Vec<Operation>,
-}
-
-// Enum to represent the operation and to deserialize the contents of the conf file.
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(untagged)]
-enum Operation {
-    // module name
-    Default(String),
-
-    Custom(HashMap<String, String>),
+    order: Vec<String>,
 }
 
 pub fn run(config: Config, args: Args) -> Result<()> {
@@ -91,12 +122,23 @@ pub fn run(config: Config, args: Args) -> Result<()> {
 
     let mut module_results: Vec<ModuleResult> = Vec::new();
 
-    for input in args.input {
+    // insert "empty" module at the beginning of the module order, so that the empty module is always invoked first.
+    let mut config = config;
+    config.order.insert(0, "empty".to_string());
+
+    for input in &args.input {
+        info!("Processing input: {}", input);
+
         // Prepare input file path from url or local file path.
         // Download the file and store it in the specified cache directory if input is url.
         // let target_file_path = match input.as_ref().and_then(|input| Url::parse(input).ok()) {
-        let target_file_path = match Url::parse(&input).ok() {
-            Some(url) => crate::fetch::download_from_url(url, &temp_dir)?,
+        let target_file_path = match Url::parse(input).ok() {
+            Some(url) => {
+                info!("Downloading from {}", url);
+                let path = crate::fetch::download_from_url(&url, &temp_dir)?;
+                info!("Downloaded to {}", path.display());
+                path
+            }
             None => {
                 let path = PathBuf::from(input);
                 if !path.exists() {
@@ -115,22 +157,31 @@ pub fn run(config: Config, args: Args) -> Result<()> {
         module_results.push(module_result);
     }
 
-    let mut serialized_map = HashMap::new();
-    for module_result in &module_results {
-        let target_file_path = &module_result.target_file_path;
-        serialized_map.insert(
-            target_file_path.clone(),
-            HashMap::from([("id", &module_result.id), ("label", &module_result.label)]),
+    // if args.cache_dir is Some, keep the temporary directory.
+    // Otherwise, delete the temporary directory.
+    if args.cache_dir.is_some() {
+        info!(
+            "Keeping temporary directory: {}",
+            temp_dir.into_path().display()
         );
+    } else {
+        info!(
+            "Deleting temporary directory: {}",
+            temp_dir.path().display()
+        );
+        temp_dir.close()?;
     }
 
-    println!("----");
-    let yaml_str = serde_yaml::to_string(&serialized_map)?;
-    println!("test_output1:\n\n{}", yaml_str);
+    let result_str =
+        ModuleResult::create_module_results_string(&module_results, args.get_output_format())?;
 
-    // TODO この出力方法だと、yamlが配列になっちゃう。消す？
-    let module_results_str = serde_yaml::to_string(&module_results)?;
-    println!("test_output2:\n\n{}", module_results_str);
+    // if args.output is Some, write the result to the specified file. Otherwise, write the result to stdout.
+    if let Some(output_path) = args.output {
+        info!("Writing the result to {}", output_path.display());
+        std::fs::write(output_path, result_str)?;
+    } else {
+        println!("{}", result_str);
+    }
 
     Ok(())
 }
@@ -138,9 +189,9 @@ pub fn run(config: Config, args: Args) -> Result<()> {
 fn run_modules(
     target_file_path: PathBuf,
     config: &Config,
-    // cache_dir: &Option<PathBuf>,
     temp_dir: &TempDir,
 ) -> Result<ModuleResult> {
+    // create an input file for CWL modules if there is any CWL module in the config file.
     let cwl_input_file_path: Option<NamedTempFile> = if cwl_module_exists(config)? {
         Some(ext_tools::make_cwl_input_file(
             target_file_path.clone(),
@@ -150,68 +201,57 @@ fn run_modules(
         None
     };
 
-    for item in &config.order {
-        let (operation_name, module) = match item {
-            Operation::Default(module) => (None, module),
-            Operation::Custom(custom) => {
-                let (operation_name, module) = custom
-                    .iter()
-                    .next()
-                    .ok_or_else(|| anyhow!("Invalid custom operation specified."))?;
-                (Some(operation_name), module)
+    let module_result = config
+        .order
+        .iter()
+        .find_map(|module| {
+            let module_path = Path::new(&module);
+            let module_extension = module_path
+                .extension()
+                .and_then(std::ffi::OsStr::to_str)
+                .unwrap_or("");
+
+            let result = match module_extension {
+                "" => parser::invoke(module, &target_file_path),
+                "cwl" => ext_tools::invoke(
+                    module_path,
+                    &target_file_path,
+                    cwl_input_file_path.as_ref().unwrap(),
+                ),
+                _ => Err(anyhow!(
+                    "An unsupported file extension '.{}' was specified for the module value in the conf file. Only .cwl is supported for external extension mode.",
+                    module_extension
+                )),
+            };
+
+            match result {
+                Ok(mut module_result) => {
+                    if module_result.is_ok {
+                        info!("Detected!! {}", module);
+                        module_result.set_target_file_path(target_file_path.clone());
+                        Some(module_result)
+                    } else {
+                        debug!(
+                            "Module \"{}\" failed. Reason:\n{}",
+                            module,
+                            module_result.error_message.unwrap_or("".to_string())
+                        );
+                        None
+                    }
+                },
+                Err(e) => {
+                    error!("An error occurred while trying to invoke the \'{}\' module. Reason:\n{}", module, e);
+                    None
+                },
             }
-        };
+        })
+        .unwrap_or_else(|| {
+            let mut none_result = ModuleResult::with_result(None, None);
+            none_result.set_target_file_path(target_file_path.clone());
+            none_result
+        });
 
-        let module_path = Path::new(&module);
-        let module_extension = module_path
-            .extension()
-            .and_then(std::ffi::OsStr::to_str)
-            .unwrap_or("");
-
-        let mut module_result = match module_extension {
-            "" => parser::invoke(module, &target_file_path)?,
-            "cwl" => ext_tools::invoke(
-                module_path,
-                &target_file_path,
-                cwl_input_file_path.as_ref().unwrap(),
-            )?,
-            _ => anyhow::bail!(
-                "An unsupported file extension was specified for the module value in the conf file"
-            ),
-        };
-
-        module_result.set_target_file_path(target_file_path.clone());
-
-        if module_result.is_ok {
-            info!("Detected!! {}", module);
-
-            if let Some(operation_name) = operation_name {
-                module_result.label = Some(operation_name.clone());
-                module_result.id = None;
-                module_result.is_edam = false;
-            }
-
-            // TODO : for debug. delete later
-            // println!("\nend {:?}", &module_result);
-            return Ok(module_result);
-        } else {
-            debug!(
-                "Module \"{}\" failed. Reason:\n{}",
-                module,
-                module_result.error_message.unwrap_or("".to_string())
-            );
-        }
-    }
-
-    // Found that no module can handle the input file, so return ModuleResult with is_ok=false.
-    return Ok(ModuleResult {
-        target_file_path,
-        is_ok: false,
-        label: None,
-        id: None,
-        error_message: None,
-        is_edam: false,
-    });
+    Ok(module_result)
 }
 
 pub fn dry_run(config: Config) -> Result<()> {
@@ -223,19 +263,7 @@ pub fn dry_run(config: Config) -> Result<()> {
 }
 
 fn cwl_module_exists(config: &Config) -> Result<bool> {
-    for item in &config.order {
-        // TODO これ重複する作業なので、Operationにimplしてまとめたい
-        let (_, module) = match item {
-            Operation::Default(module) => (None, module),
-            Operation::Custom(custom) => {
-                let (operation_name, module) = custom
-                    .iter()
-                    .next()
-                    .ok_or_else(|| anyhow!("Invalid custom operation specified."))?;
-                (Some(operation_name), module)
-            }
-        };
-
+    for module in &config.order {
         let module_path = Path::new(&module);
         let module_extension = module_path
             .extension()
