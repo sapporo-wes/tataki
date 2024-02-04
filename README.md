@@ -53,12 +53,12 @@ Options:
       --cache-dir <DIR>   Specify the directory in which to create a temporary directory. If this option is not provided, a temporary directory will be created in the default system temporary directory (/tmp)
   -c, --conf <FILE>       Specify the tataki configuration file. If this option is not provided, the default configuration will be used. The option `--dry-run` shows the default configuration file
       --dry-run           Output the configuration file in yaml format and exit the program. If `--conf` option is not provided, the default configuration file will be shown
-  -v, --verbose           Sets the level of verbosity
+  -v, --verbose           Show verbose log messages
   -q, --quiet             Suppress all log messages
   -h, --help              Print help
   -V, --version           Print version
 
-Version: 0.2.0
+Version: 0.2.1
 ```
 
 ### Determining Formats in Your Preferred Order
