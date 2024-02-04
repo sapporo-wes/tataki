@@ -49,7 +49,7 @@ pub struct Args {
     #[clap(long)]
     pub dry_run: bool,
 
-    /// Sets the level of verbosity
+    /// Show verbose log messages
     #[clap(short, long)]
     pub verbose: bool,
 
