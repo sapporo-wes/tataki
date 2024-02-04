@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use tempfile::{Builder, NamedTempFile, TempDir};
 
 use crate::edam;
-use crate::run::ModuleResult;
+use crate::module::ModuleResult;
 
 const CWL_INSPECTOR_DOCKER_IMAGE: &str = "ghcr.io/tom-tan/cwl-inspector:v0.1.1";
 const LABEL_KEY: &str = "label";
@@ -29,10 +29,10 @@ pub fn invoke(
     // make sure that the both paths are canonicalized.
     let target_file_path = target_file_path
         .canonicalize()
-        .with_context(|| format!("Failed to canonicalize {}", target_file_path.display()))?;
+        .with_context(|| format!("The specified path of CWL document '{}' does not exist. Please check the path for typos and try again.", target_file_path.display()))?;
     let cwl_file_path = cwl_file_path
         .canonicalize()
-        .with_context(|| format!("Failed to canonicalize {}", cwl_file_path.display()))?;
+        .with_context(|| format!("The specified path of CWL document '{}' does not exist. Please check the path for typos and try again.", cwl_file_path.display()))?;
 
     // get the EDAM_ID and LABEL from the comment lines in the CWL file.
     let mut cwl_metadatas = get_metadata_fields_from_cwl_file(&cwl_file_path)?;
@@ -77,7 +77,7 @@ pub fn invoke(
 
     // remove the "-v" options and split the docker command on the "-v" option.
     let mut parts_iter = tmp_cwl_docker_command_split.into_iter().peekable();
-    let cwl_docker_commandname = parts_iter.next().unwrap();
+    let cwl_docker_command_name = parts_iter.next().unwrap();
     let mut cwl_docker_args_before_v: Vec<String> = Vec::new();
     let mut cwl_docker_args_after_v: Vec<String> = Vec::new();
     let mut encountered_v = false;
@@ -110,12 +110,12 @@ pub fn invoke(
     // run the docker command created by cwl-inspector.
     debug!(
         "Running the docker command: '{} {} {}'",
-        cwl_docker_commandname,
+        cwl_docker_command_name,
         cwl_docker_args_before_v.join(" "),
         cwl_docker_args_after_v.join(" ")
     );
 
-    let cwl_docker_process = std::process::Command::new(cwl_docker_commandname)
+    let cwl_docker_process = std::process::Command::new(cwl_docker_command_name)
         .args(cwl_docker_args_before_v)
         .args(cwl_docker_args_after_v)
         .stdout(std::process::Stdio::piped())

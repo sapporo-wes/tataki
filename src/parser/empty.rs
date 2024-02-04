@@ -1,8 +1,8 @@
 use std::fs;
 use std::path::Path;
 
+use crate::module::ModuleResult;
 use crate::parser::Parser;
-use crate::run::ModuleResult;
 
 pub struct Empty;
 

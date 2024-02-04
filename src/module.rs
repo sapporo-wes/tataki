@@ -6,11 +6,7 @@ use std::path::{Path, PathBuf};
 use tempfile::{NamedTempFile, TempDir};
 use url::Url;
 
-use crate::args::Args;
-use crate::ext_tools;
-use crate::fetch;
-use crate::parser;
-use crate::OutputFormat;
+use crate::args::{Args, OutputFormat};
 
 // Struct to store the result of Parser invocation and ExtTools invocation.
 #[derive(Debug)]
@@ -117,7 +113,12 @@ pub struct Config {
 }
 
 pub fn run(config: Config, args: Args) -> Result<()> {
-    let temp_dir = fetch::create_temporary_dir(&args.cache_dir)?;
+    crate::logger::init_logger(args.verbose, args.quiet);
+    info!("tataki started");
+    debug!("Args: {:?}", args);
+    debug!("Output format: {:?}", args.get_output_format());
+
+    let temp_dir = crate::fetch::create_temporary_dir(&args.cache_dir)?;
     info!("Created temporary directory: {}", temp_dir.path().display());
 
     let mut module_results: Vec<ModuleResult> = Vec::new();
@@ -193,7 +194,7 @@ fn run_modules(
 ) -> Result<ModuleResult> {
     // create an input file for CWL modules if there is any CWL module in the config file.
     let cwl_input_file_path: Option<NamedTempFile> = if cwl_module_exists(config)? {
-        Some(ext_tools::make_cwl_input_file(
+        Some(crate::ext_tools::make_cwl_input_file(
             target_file_path.clone(),
             temp_dir,
         )?)
@@ -212,8 +213,8 @@ fn run_modules(
                 .unwrap_or("");
 
             let result = match module_extension {
-                "" => parser::invoke(module, &target_file_path),
-                "cwl" => ext_tools::invoke(
+                "" => crate::parser::invoke(module, &target_file_path),
+                "cwl" => crate::ext_tools::invoke(
                     module_path,
                     &target_file_path,
                     cwl_input_file_path.as_ref().unwrap(),

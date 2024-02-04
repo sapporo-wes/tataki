@@ -14,7 +14,7 @@ use anyhow::{bail, Result};
 use log::info;
 use std::path::Path;
 
-use crate::run::ModuleResult;
+use crate::module::ModuleResult;
 
 pub trait Parser {
     /// Determine if the provided file is in a format that this parser can interpret.

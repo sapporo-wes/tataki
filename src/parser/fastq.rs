@@ -2,8 +2,8 @@ use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
 
+use crate::module::ModuleResult;
 use crate::parser::Parser;
-use crate::run::ModuleResult;
 
 pub struct Fastq;
 

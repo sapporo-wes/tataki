@@ -1,26 +1,13 @@
-mod args;
-mod edam;
-mod ext_tools;
-mod fetch;
-mod logger;
-mod parser;
-mod run;
-
 use anyhow::{Context, Result};
 use clap::Parser;
-use log::{debug, info};
 use std::fs::File;
 use std::io::BufReader;
 
-use crate::args::OutputFormat;
-use crate::run::Config;
-
 fn main() -> Result<()> {
     // parse arguments and options with clap
-    let args = args::Args::parse();
-    logger::init_logger(args.verbose, args.quiet);
+    let args = tataki::args::Args::parse();
 
-    let config: Config = match &args.conf {
+    let config: tataki::module::Config = match &args.conf {
         None => {
             let config_str = include_str!("./tataki.conf");
             serde_yaml::from_str(config_str)?
@@ -38,12 +25,9 @@ fn main() -> Result<()> {
     };
 
     if args.dry_run {
-        run::dry_run(config)?;
+        tataki::module::dry_run(config)?;
     } else {
-        info!("tataki started");
-        debug!("Args: {:?}", args);
-        debug!("Output format: {:?}", args.get_output_format());
-        run::run(config, args)?;
+        tataki::module::run(config, args)?;
     }
 
     Ok(())
