@@ -58,3 +58,93 @@ pub fn invoke(module_name: &str, target_file_path: &Path) -> Result<ModuleResult
         module_result
     }))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    // Test the result of invoking the parser when determine is successful.
+    fn invoke_wrapper_determine_pass(
+        module_name: &str,
+        target_file_path: &Path,
+        label: &str,
+        id: &str,
+    ) {
+        let result = invoke(module_name, target_file_path).unwrap();
+
+        assert_eq!(result.label(), Some(&label.to_string()));
+        assert_eq!(result.id(), Some(&id.to_string()));
+    }
+
+    // Test the result of invoking the parser when determine is unsuccessful.
+    fn invoke_wrapper_determine_fail(
+        module_name: &str,
+        target_file_path: &Path,
+        error_message: &str,
+    ) {
+        let result = invoke(module_name, target_file_path).unwrap();
+
+        assert_eq!(result.error_message(), Some(&error_message.to_string()));
+    }
+
+    #[test]
+    fn test_empty_invoke() {
+        let empty_input_path = PathBuf::from("./tests/inputs/empty");
+
+        invoke_wrapper_determine_pass(
+            "empty",
+            &empty_input_path,
+            "plain text format (unformatted)",
+            "http://edamontology.org/format_1964",
+        );
+
+        let not_empty_input_path = PathBuf::from("./tests/inputs/toy.fa");
+        invoke_wrapper_determine_fail("empty", &not_empty_input_path, "The file is not empty");
+    }
+
+    #[test]
+    fn test_sam_invoke() {
+        let sam_input_path = PathBuf::from("./tests/inputs/toy.sam");
+
+        invoke_wrapper_determine_pass(
+            "sam",
+            &sam_input_path,
+            "SAM",
+            "http://edamontology.org/format_2573",
+        );
+
+        let not_sam_input_path = PathBuf::from("./tests/inputs/toy.fa");
+        invoke_wrapper_determine_fail("sam", &not_sam_input_path, "invalid flags");
+    }
+
+    #[test]
+    fn test_fasta_invoke() {
+        let fasta_input_path = PathBuf::from("./tests/inputs/toy.fa");
+
+        invoke_wrapper_determine_pass(
+            "fasta",
+            &fasta_input_path,
+            "FASTA",
+            "http://edamontology.org/format_1929",
+        );
+
+        let not_fasta_input_path = PathBuf::from("./tests/inputs/toy.sam");
+        invoke_wrapper_determine_fail("fasta", &not_fasta_input_path, "missing prefix ('>')");
+    }
+
+    #[test]
+    fn test_bam_invoke() {
+        let bam_input_path = PathBuf::from("./tests/inputs/toy.bam");
+
+        invoke_wrapper_determine_pass(
+            "bam",
+            &bam_input_path,
+            "BAM",
+            "http://edamontology.org/format_2572",
+        );
+
+        let not_bam_input_path = PathBuf::from("./tests/inputs/toy.sam");
+        invoke_wrapper_determine_fail("bam", &not_bam_input_path, "failed to fill whole buffer");
+    }
+}

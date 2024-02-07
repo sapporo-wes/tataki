@@ -29,6 +29,18 @@ impl ModuleResult {
         }
     }
 
+    pub fn label(&self) -> Option<&String> {
+        self.label.as_ref()
+    }
+
+    pub fn id(&self) -> Option<&String> {
+        self.id.as_ref()
+    }
+
+    pub fn error_message(&self) -> Option<&String> {
+        self.error_message.as_ref()
+    }
+
     pub fn set_is_ok(&mut self, is_ok: bool) {
         self.is_ok = is_ok;
     }
