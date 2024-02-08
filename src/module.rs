@@ -1,4 +1,4 @@
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{anyhow, bail, Result};
 use log::{debug, error, info};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -11,7 +11,7 @@ use crate::args::{Args, OutputFormat};
 // Struct to store the result of Parser invocation and ExtTools invocation.
 #[derive(Debug)]
 pub struct ModuleResult {
-    target_file_path: PathBuf,
+    input: String,
     is_ok: bool,
     label: Option<String>,
     id: Option<String>,
@@ -21,7 +21,7 @@ pub struct ModuleResult {
 impl ModuleResult {
     pub fn with_result(label: Option<String>, id: Option<String>) -> Self {
         Self {
-            target_file_path: PathBuf::new(),
+            input: String::new(),
             is_ok: true,
             label,
             id,
@@ -49,8 +49,8 @@ impl ModuleResult {
         self.error_message = Some(error_message);
     }
 
-    pub fn set_target_file_path(&mut self, target_file_path: PathBuf) {
-        self.target_file_path = target_file_path;
+    pub fn set_input(&mut self, input: String) {
+        self.input = input;
     }
 
     pub fn create_module_results_string(
@@ -67,14 +67,8 @@ impl ModuleResult {
                 writer.write_record(["File Path", "Edam ID", "Label"])?;
 
                 for module_result in module_results.iter() {
-                    let target_file_path = &module_result.target_file_path;
                     writer.serialize((
-                        target_file_path.to_str().with_context(|| {
-                            format!(
-                                "Failed to convert the file path to a string: {}",
-                                target_file_path.display()
-                            )
-                        })?,
+                        &module_result.input,
                         &module_result.id,
                         &module_result.label,
                     ))?;
@@ -89,7 +83,7 @@ impl ModuleResult {
             OutputFormat::Yaml => {
                 let mut serialized_map = HashMap::new();
                 for module_result in module_results {
-                    let target_file_path = &module_result.target_file_path;
+                    let target_file_path = &module_result.input;
                     serialized_map.insert(
                         target_file_path.clone(),
                         HashMap::from([("id", &module_result.id), ("label", &module_result.label)]),
@@ -104,7 +98,7 @@ impl ModuleResult {
             OutputFormat::Json => {
                 let mut serialized_map = HashMap::new();
                 for module_result in module_results {
-                    let target_file_path = &module_result.target_file_path;
+                    let target_file_path = &module_result.input;
                     serialized_map.insert(
                         target_file_path.clone(),
                         HashMap::from([("id", &module_result.id), ("label", &module_result.label)]),
@@ -164,9 +158,8 @@ pub fn run(config: Config, args: Args) -> Result<()> {
             }
         };
 
-        //
-        // let module_result = run_modules(target_file_path, &config, &args.cache_dir)?;
-        let module_result = run_modules(target_file_path, &config, &temp_dir)?;
+        let mut module_result = run_modules(target_file_path, &config, &temp_dir)?;
+        module_result.set_input(input.clone());
         module_results.push(module_result);
     }
 
@@ -238,10 +231,9 @@ fn run_modules(
             };
 
             match result {
-                Ok(mut module_result) => {
+                Ok(module_result) => {
                     if module_result.is_ok {
                         info!("Detected!! {}", module);
-                        module_result.set_target_file_path(target_file_path.clone());
                         Some(module_result)
                     } else {
                         debug!(
@@ -258,11 +250,7 @@ fn run_modules(
                 },
             }
         })
-        .unwrap_or_else(|| {
-            let mut none_result = ModuleResult::with_result(None, None);
-            none_result.set_target_file_path(target_file_path.clone());
-            none_result
-        });
+        .unwrap_or_else(|| {ModuleResult::with_result(None, None)});
 
     Ok(module_result)
 }
