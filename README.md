@@ -75,7 +75,7 @@ Options:
   -h, --help              Print help
   -V, --version           Print version
 
-Version: 0.2.1
+Version: v0.2.2
 ```
 
 ## Detailed Usage
@@ -89,7 +89,7 @@ The configuration file is in YAML format. Please refer to the default configurat
 The default configuration can be achieved by using the `--dry-run` option.
 
 ```yaml
-# tataki --dry-run
+# $ tataki --dry-run
 order:
   - bam
   - bcf

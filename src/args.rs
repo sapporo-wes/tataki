@@ -14,7 +14,7 @@ pub enum OutputFormat {
     name = env!("CARGO_PKG_NAME"),
     about = env!("CARGO_PKG_DESCRIPTION"),
     version = env!("CARGO_PKG_VERSION"),
-    after_help = concat!("Version: ", env!("CARGO_PKG_VERSION")),
+    after_help = concat!("Version: v", env!("CARGO_PKG_VERSION")),
     arg_required_else_help = true,
 )]
 
