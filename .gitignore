@@ -87,3 +87,8 @@ target/
 
 # MSVC Windows builds of rustc generate these, which store debugging information
 *.pdb
+
+##########################
+
+# Ignore the cache directory for tests
+tests/cache_dir/

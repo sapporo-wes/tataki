@@ -1,0 +1,6 @@
+./inputs/toy.sam:
+  label: SAM
+  id: http://edamontology.org/format_2573
+./inputs/toy.fa:
+  label: FASTA
+  id: http://edamontology.org/format_1929
