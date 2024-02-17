@@ -1,4 +1,4 @@
-name: deploy
+name: build_release
 
 on:
   push:
@@ -7,7 +7,20 @@ on:
 
 jobs:
   build_binary:
-    runs-on: ubuntu-latest
+    name: Build for ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: x86_64
+            tag: x86_64-musl
+            target: x86_64-unknown-linux-musl
+          - os: ubuntu-latest
+            name: arm64
+            tag: aarch64-musl
+            target: aarch64-unknown-linux-musl
     steps:
       - name: "Checkout"
         uses: actions/checkout@v3
@@ -18,17 +31,17 @@ jobs:
         id: cache-builder-image
         uses: actions/cache@v3
         with:
-          path: musl-builder-image-x86_64
-          key: musl-builder-image-x86_64
+          path: musl-builder-image-${{ matrix.name }}
+          key: musl-builder-image-${{ matrix.name }}
 
       - name: "Pull and save builder image"
         if: steps.cache-builder-image.outputs.cache-hit != 'true'
         run: |
-          docker pull messense/rust-musl-cross:x86_64-musl
-          docker save messense/rust-musl-cross:x86_64-musl -o musl-builder-image-x86_64
+          docker pull messense/rust-musl-cross:${{ matrix.tag }}
+          docker save messense/rust-musl-cross:${{ matrix.tag }} -o musl-builder-image-${{ matrix.name }}
 
       - name: "Load builder image"
-        run: docker load -i musl-builder-image-x86_64
+        run: docker load -i musl-builder-image-${{ matrix.name }}
 
       - name: "Cache Rust"
         uses: actions/cache@v3
@@ -39,27 +52,36 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ matrix.name }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: "Build binary"
-        run: docker run --rm -u root -v "$(pwd)":/home/rust/src messense/rust-musl-cross:x86_64-musl cargo build --release
+        run: docker run --rm -u root -v "$(pwd)":/home/rust/src messense/rust-musl-cross:${{ matrix.tag }} cargo build --release
 
       - name: "Upload binary"
         uses: actions/upload-artifact@v3
         with:
-          name: tataki
-          path: target/x86_64-unknown-linux-musl/release/tataki
+          name: tataki-${{ matrix.name }}
+          path: target/${{ matrix.target }}/release/tataki
 
   create_release:
     needs: [build_binary]
+    name: Create release for ${{ matrix.name }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - name: x86_64
+          - name: arm64
     steps:
       - name: "Download tataki binary"
         uses: actions/download-artifact@v3
         with:
-          name: tataki
-      - name: "Release"
-        run: gh release --repo ${{ github.repository }} create ${{ github.ref_name }} --title ${{ github.ref_name }} --generate-notes tataki
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: tataki-${{ matrix.name }}
+      - name: Upload tataki binary
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: tataki-${{ matrix.name }}
+          prerelease: true
 
