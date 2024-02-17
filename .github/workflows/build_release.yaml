@@ -82,6 +82,7 @@ jobs:
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: tataki-${{ matrix.name }}
+          file: tataki
+          asset_name: tataki-${{ matrix.name }}
           prerelease: true
 
