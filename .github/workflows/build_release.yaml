@@ -84,5 +84,4 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: tataki
           asset_name: tataki-${{ matrix.name }}
-          prerelease: true
 
