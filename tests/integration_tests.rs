@@ -16,8 +16,6 @@ test cases:
 - --quiet
 - --verbose
 - -c cwl.conf
-
-
 */
 
 #[test]
@@ -196,13 +194,11 @@ fn can_be_verbose() {
     assert!(stderr.contains("DEBUG"));
 }
 
-// TODO
-/*
 #[test]
 fn can_run_cwl() {
     let out = tataki(
-        &["./inputs/toy.bam", "./inputs/toy.fa"],
-        &["-c", "./inputs/cwl.conf"],
+        &["./inputs/toy.py", "./inputs/toy.fa"],
+        &["-c", "./conf/run_cwl_test.conf"],
     );
 
     let stdout = out.stdout;
@@ -214,7 +210,7 @@ fn can_run_cwl() {
         .expect("Failed to parse the output as CSV");
 
     let mut expected_output_rdr =
-        csv::Reader::from_path(Path::new("tests/outputs/expected_output_cwl.csv"))
+        csv::Reader::from_path(Path::new("tests/outputs/expected_output_run_cwl.csv"))
             .expect("Failed to read the expected output file");
     let expected_output_records = expected_output_rdr
         .records()
@@ -223,4 +219,3 @@ fn can_run_cwl() {
 
     assert_eq!(output_records, expected_output_records);
 }
-*/
