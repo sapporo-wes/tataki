@@ -1,9 +1,8 @@
 use anyhow::{bail, Result};
 use bzip2::read::BzDecoder;
-use flate2::read::{GzDecoder, ZlibDecoder};
-use nom::bytes;
+use flate2::read::GzDecoder;
 use std::fs::File;
-use std::io::{BufRead, BufReader, BufWriter, Read, Seek, Write};
+use std::io::{BufRead, BufReader, Read, Seek, Write};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::atomic::AtomicBool;
@@ -140,9 +139,10 @@ impl Source {
 
         let mut bufreader = BufReader::new(reader);
 
+        // TODO tmpに保存する行数を4倍くらいにする。memo参照
         let mut line_buffer = String::new();
         let mut count = 0;
-        while options.tidy || count < options.num_lines {
+        while options.tidy || count < options.num_records {
             line_buffer.clear();
             let bytes_read = bufreader.read_line(&mut line_buffer)?;
             if bytes_read == 0 {
@@ -154,7 +154,7 @@ impl Source {
         }
 
         // for (count, line) in bufreader.lines().enumerate() {
-        //     if !options.tidy && count >= options.num_lines {
+        //     if !options.tidy && count >= options.num_records {
         //         break;
         //     }
         //     let line = line?;

@@ -1,5 +1,3 @@
-use anyhow::Result;
-use flate2::read::{GzDecoder, ZlibDecoder};
 use std::io::{self, Cursor, Read, Seek, SeekFrom};
 
 pub struct OnetimeRewindableReader<R: Read> {
@@ -66,63 +64,3 @@ impl<R: Read> Seek for OnetimeRewindableReader<R> {
         }
     }
 }
-
-/*
-// 構造体の定義
-pub struct OnetimeRewindableReader<R: Read> {
-    inner: R,
-    buffer: Cursor<Vec<u8>>,
-    eof: bool,
-}
-
-impl<R: Read> OnetimeRewindableReader<R> {
-    // 新しいBufferedReadSeekを作成
-    pub fn new(inner: R) -> OnetimeRewindableReader<R> {
-        OnetimeRewindableReader {
-            inner,
-            buffer: Cursor::new(Vec::new()),
-            eof: false,
-        }
-    }
-
-    // 内部バッファから読み出す、もしくは必要に応じて入力ソースから読み込む
-    fn fill_buffer(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        if self.eof {
-            return Ok(0);
-        }
-
-        if self.buffer.position() as usize == self.buffer.get_ref().len() {
-            // println!("buffer filled");
-            // println!("buffer prev: {:?}", self.buffer.get_ref());
-            let mut temp_buf = vec![0; buf.len()];
-            let bytes_read = self.inner.read(&mut temp_buf)?;
-            if bytes_read == 0 {
-                self.eof = true; // ファイルの終わりに達したのでフラグをセット
-                return Ok(0);
-            }
-            self.buffer
-                .get_mut()
-                .extend_from_slice(&temp_buf[..bytes_read]);
-            // self.buffer.set_position(0);
-            // println!("buffer afte: {:?}", self.buffer.get_ref());
-            // println!("position: {:?}", self.buffer.position());
-        }
-        self.buffer.read(buf)
-    }
-}
-
-// Readトレイトの実装
-impl<R: Read> Read for OnetimeRewindableReader<R> {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        self.fill_buffer(buf)
-    }
-}
-
-// Seekトレイトの実装
-impl<R: Read> Seek for OnetimeRewindableReader<R> {
-    fn seek(&mut self, pos: SeekFrom) -> io::Result<u64> {
-        self.eof = false;
-        self.buffer.seek(pos)
-    }
-}
-*/

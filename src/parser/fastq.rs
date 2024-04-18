@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::{BufRead, BufReader};
+use std::io::BufReader;
 use std::path::Path;
 
 use crate::module::{InvokeOptions, ModuleResult};
@@ -21,8 +21,8 @@ impl Parser for Fastq {
             #[allow(unused_variables)]
             let record = result?;
 
-            // If the tidy option is not set, the number of lines to read is limited to num_lines.
-            if !options.tidy && count >= options.num_lines {
+            // If the tidy option is not set, the number of lines to read is limited to num_records.
+            if !options.tidy && count + 2 > options.num_records {
                 break;
             }
         }

@@ -1,14 +1,14 @@
-// mod bam;
-// mod bcf;
-// mod bed;
-// mod cram;
-// mod empty;
-// mod fasta;
+mod bam;
+mod bcf;
+mod bed;
+mod cram;
+mod empty;
+mod fasta;
 mod fastq;
-// mod gff3;
-// mod gtf;
-// mod sam;
-// mod vcf;
+mod gff3;
+mod gtf;
+mod sam;
+mod vcf;
 
 use anyhow::{bail, Result};
 use log::info;
@@ -34,18 +34,18 @@ pub trait Parser {
 pub fn from_str_to_parser(module_name: &str) -> Result<Box<dyn Parser>> {
     let module_name = module_name.to_lowercase();
     match &module_name[..] {
-        // "bam" => Ok(Box::new(bam::Bam)),
-        // "bcf" => Ok(Box::new(bcf::Bcf)),
-        // "bed" => Ok(Box::new(bed::Bed)),
-        // "cram" => Ok(Box::new(cram::Cram)),
-        // "empty" => Ok(Box::new(empty::Empty)),
-        // "fasta" => Ok(Box::new(fasta::Fasta)),
+        "bam" => Ok(Box::new(bam::Bam)),
+        "bcf" => Ok(Box::new(bcf::Bcf)),
+        "bed" => Ok(Box::new(bed::Bed)),
+        "cram" => Ok(Box::new(cram::Cram)),
+        "empty" => Ok(Box::new(empty::Empty)),
+        "fasta" => Ok(Box::new(fasta::Fasta)),
         "fastq" => Ok(Box::new(fastq::Fastq)),
-        // "gff3" => Ok(Box::new(gff3::Gff3)),
-        // "gff" => Ok(Box::new(gff3::Gff3)),
-        // "gtf" => Ok(Box::new(gtf::Gtf)),
-        // "sam" => Ok(Box::new(sam::Sam)),
-        // "vcf" => Ok(Box::new(vcf::Vcf)),
+        "gff3" => Ok(Box::new(gff3::Gff3)),
+        "gff" => Ok(Box::new(gff3::Gff3)),
+        "gtf" => Ok(Box::new(gtf::Gtf)),
+        "sam" => Ok(Box::new(sam::Sam)),
+        "vcf" => Ok(Box::new(vcf::Vcf)),
         _ => bail!("Unsupported parser name: {}", module_name),
     }
 }
@@ -53,7 +53,7 @@ pub fn from_str_to_parser(module_name: &str) -> Result<Box<dyn Parser>> {
 // Return the result of determine() using Ok(ModuleResult), and return errors in other parts using Err.
 pub fn invoke(
     module_name: &str,
-    target_source: &mut Source,
+    target_source: &Source,
     options: &InvokeOptions,
 ) -> Result<ModuleResult> {
     info!("Invoking parser {}", module_name);
@@ -63,10 +63,7 @@ pub fn invoke(
     // Convert Source to readable object
     let target_file_path = match target_source {
         Source::FilePath(target_file_path) => target_file_path,
-        Source::TempFile(target_temp_file) => {
-            let target_file_path = target_temp_file.path();
-            target_file_path
-        }
+        Source::TempFile(target_temp_file) => target_temp_file.path(),
         Source::Stdin => {
             unreachable!()
         }
@@ -97,7 +94,13 @@ mod tests {
         label: &str,
         id: &str,
     ) {
-        let result = invoke(module_name, target_file_path).unwrap();
+        let target_source = Source::FilePath(target_file_path.to_path_buf());
+        let options = InvokeOptions {
+            tidy: true,
+            no_decompress: false,
+            num_records: 100000,
+        };
+        let result = invoke(module_name, &target_source, &options).unwrap();
 
         assert_eq!(result.label(), Some(&label.to_string()));
         assert_eq!(result.id(), Some(&id.to_string()));
@@ -109,7 +112,13 @@ mod tests {
         target_file_path: &Path,
         error_message: &str,
     ) {
-        let result = invoke(module_name, target_file_path).unwrap();
+        let target_source = Source::FilePath(target_file_path.to_path_buf());
+        let options = InvokeOptions {
+            tidy: true,
+            no_decompress: false,
+            num_records: 100000,
+        };
+        let result = invoke(module_name, &target_source, &options).unwrap();
 
         assert_eq!(result.error_message(), Some(&error_message.to_string()));
     }

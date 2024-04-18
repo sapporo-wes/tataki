@@ -8,7 +8,6 @@ use url::Url;
 
 use crate::args::{Args, OutputFormat};
 use crate::source::Source;
-use crate::buffered_read_seek::OnetimeRewindableReader;
 
 // Struct to store the result of Parser invocation and ExtTools invocation.
 #[derive(Debug)]
@@ -123,7 +122,7 @@ pub struct Config {
 pub struct InvokeOptions {
     pub tidy: bool,
     pub no_decompress: bool,
-    pub num_lines: usize,
+    pub num_records: usize,
 }
 
 impl From<&Args> for InvokeOptions {
@@ -131,7 +130,7 @@ impl From<&Args> for InvokeOptions {
         Self {
             tidy: args.tidy,
             no_decompress: args.no_decompress,
-            num_lines: args.num_lines,
+            num_records: args.num_records,
         }
     }
 }
@@ -184,6 +183,7 @@ pub fn run(config: Config, args: Args) -> Result<()> {
                 // TODO 必要だったらtempfileにせなかん
             }
             Source::Stdin => {
+                unimplemented!("Stdin is not supported yet. Will be implemented in upcoming versions.");
                 Source::convert_into_tempfile_from_stdin(&invoke_options, &temp_dir)?
             },
             Source::TempFile(_) => unreachable!(),
@@ -232,7 +232,7 @@ pub fn run(config: Config, args: Args) -> Result<()> {
 
 fn run_modules(
     // target_file_path: PathBuf,
-    mut target_source: Source,
+    target_source: Source,
     config: &Config,
     temp_dir: &TempDir,
     invoke_options: &InvokeOptions,
@@ -241,7 +241,7 @@ fn run_modules(
     let cwl_input_file_path: Option<NamedTempFile> =
         // Check whether the input is not stdin
         if let Source::FilePath(target_file_path) = &target_source {
-            // Check whether CWL modules exist in teh config file.
+            // Check whether CWL modules exist in the config file.
             if cwl_module_exists(config)? {
                 Some(crate::ext_tools::make_cwl_input_file(
                     target_file_path.clone(),
@@ -267,10 +267,9 @@ fn run_modules(
                 .unwrap_or("");
 
             let result = match module_extension {
-                "" => crate::parser::invoke(module, &mut target_source, invoke_options),
+                "" => crate::parser::invoke(module, &target_source, invoke_options),
                 "cwl" => {
-                    // let target_file_path = target_source.as_path().
-                    // TODO ここ、match使わずに書けないか？
+                    // TODO ここ、match使わずに書けないだろうか
                     // CWL module invocation is skipped if the input is not a file path or URL.
                     match target_source.as_path() {
                         Some(target_file_path) => {

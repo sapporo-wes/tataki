@@ -2,7 +2,6 @@ use anyhow::{Context, Result};
 use clap::Parser;
 use std::fs::File;
 use std::io::BufReader;
-use std::process::exit;
 
 fn main() -> Result<()> {
     // parse arguments and options with clap

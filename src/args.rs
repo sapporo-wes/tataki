@@ -1,3 +1,4 @@
+use anyhow::{Context, Result};
 use clap::{Parser, ValueEnum};
 use std::path::PathBuf;
 
@@ -34,10 +35,9 @@ pub struct Args {
     yaml: bool,
 
     /// Specify the directory in which to create a temporary directory. If this option is not provided, a temporary directory will be created in the default system temporary directory (/tmp).
-    #[clap(long, value_name = "DIR")]
+    #[clap(short = 'C', long, value_name = "DIR")]
     pub cache_dir: Option<PathBuf>,
 
-    // TODO
     // #[clap(long, hide = true)]
     // pub full_fetch: bool,
     /// Specify the tataki configuration file. If this option is not provided, the default configuration will be used.
@@ -46,16 +46,17 @@ pub struct Args {
     pub conf: Option<PathBuf>,
 
     /// Attempt to read the whole lines from the input files.
-    #[clap(long, conflicts_with_all = ["num_lines"])]
+    #[clap(short, long, conflicts_with_all = ["num_records"])]
     pub tidy: bool,
 
+    // TODO
     /// Do not try to decompress the input file when detecting the file format.
-    #[clap(long)]
+    #[clap(long, hide = true)]
     pub no_decompress: bool,
 
-    /// Number of lines to read from the input file. Ignored when `--tidy` is provided.
-    #[clap(short, long, default_value = "10000")]
-    pub num_lines: usize,
+    /// Number of records to read from the input file. Conflicts with `--tidy` option.
+    #[clap(short, long, default_value = "100000", value_parser = validate_num_records_greater_than_zero)]
+    pub num_records: usize,
 
     /// Output the configuration file in yaml format and exit the program. If `--conf` option is not provided, the default configuration file will be shown.
     #[clap(long)]
@@ -78,4 +79,15 @@ impl Args {
             self.output_format
         }
     }
+}
+
+fn validate_num_records_greater_than_zero(v: &str) -> Result<usize> {
+    let num = v
+        .parse::<usize>()
+        .with_context(|| format!("Failed to parse {}", v))?;
+    anyhow::ensure!(
+        num > 0,
+        "The number of records to read must be greater than 0"
+    );
+    Ok(num)
 }
