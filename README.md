@@ -18,6 +18,28 @@ Tataki is a command-line tool designed primarily for detecting file formats in t
 - Can target both local files and remote URLs
 - Compatible with [EDAM ontology](https://edamontology.org/page)
 
+## Installation
+
+A single binary is available for Linux x86_64.
+
+```shell
+curl -fsSL -o ./tataki https://github.com/sapporo-wes/tataki/releases/latest/download/tataki-$(uname -m)
+chmod +x ./tataki
+./tataki --help
+```
+
+Or, you can run tataki using Docker.
+
+```shell
+docker run --rm -v $PWD:$PWD -w $PWD ghcr.io/sapporo-wes/tataki:latest --help
+```
+
+In case you want to execute the CWL document with external extension mode, please make sure to mount `docker.sock`, `/tmp` and any other necessary directories.
+
+```shell
+docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /tmp:/tmp -v $PWD:$PWD -w $PWD ghcr.io/sapporo-wes/tataki:latest --help
+```
+
 ## Quick Start
 
 Determining the file format of a local file:
@@ -37,17 +59,7 @@ path/to/unknown/file.txt:
   id: http://edamontology.org/format_2572
 ```
 
-### Installation
-
-A single binary is available for Linux x86_64.
-
-```shell
-curl -fsSL -o ./tataki https://github.com/sapporo-wes/tataki/releases/latest/download/tataki-$(uname -m)
-chmod +x ./tataki
-./tataki --help
-```
-
-### Basic Usage
+### Usage
 
 Specify the paths of the files as arguments to `tataki`. Both local file path and remote URL are supported.
 
