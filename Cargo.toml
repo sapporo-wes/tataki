@@ -1,7 +1,7 @@
 [package]
 name = "tataki"
 authors = ["Tazro Ohta (tazro.ohta@chiba-u.jp)"]
-version = "0.2.2"
+version = "0.3.0"
 edition = "2021"
 repository = "https://github.com/sapporo-wes/tataki"
 license = "apache-2.0"

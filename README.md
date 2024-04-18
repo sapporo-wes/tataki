@@ -42,7 +42,7 @@ docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /tmp:/tmp -v $PW
 
 ## Quick Start
 
-Determining the file format of a local file:
+Determine the file format of a local file:
 
 ```shell
 $ tataki path/to/unknown/file.txt -q
@@ -50,11 +50,22 @@ File Path,Edam ID,Label
 path/to/unknown/file.txt,http://edamontology.org/format_2572,BAM
 ```
 
-Output result in YAML format:
+Determine the file format of remote file, and output result in YAML format:
 
 ```shell
-$ tataki path/to/unknown/file.txt -q -f yaml
-path/to/unknown/file.txt:
+$ tataki https://path/to/unknown/file.txt  -q -f yaml
+https://path/to/unknown/file.txt:
+  label: BAM
+  id: http://edamontology.org/format_2572
+```
+
+Read the whole records from the input file:
+
+This may take while depending on the file size.
+
+```shell
+$ tataki https://path/to/unknown/file.txt  -q --tidy
+https://path/to/unknown/file.txt:
   label: BAM
   id: http://edamontology.org/format_2572
 ```
@@ -77,20 +88,38 @@ Arguments:
   [FILE|URL]...  Path to the file
 
 Options:
-  -o, --output <FILE>     Path to the output file [default: stdout]
-  -f <OUTPUT_FORMAT>      [default: csv] [possible values: yaml, tsv, csv, json]
-      --cache-dir <DIR>   Specify the directory in which to create a temporary directory. If this option is not provided, a temporary directory will be created in the default system temporary directory (/tmp)
-  -c, --conf <FILE>       Specify the tataki configuration file. If this option is not provided, the default configuration will be used. The option `--dry-run` shows the default configuration file
-      --dry-run           Output the configuration file in yaml format and exit the program. If `--conf` option is not provided, the default configuration file will be shown
-  -v, --verbose           Show verbose log messages
-  -q, --quiet             Suppress all log messages
-  -h, --help              Print help
-  -V, --version           Print version
+  -o, --output <FILE>              Path to the output file [default: stdout]
+  -f <OUTPUT_FORMAT>               [default: csv] [possible values: yaml, tsv, csv, json]
+  -C, --cache-dir <DIR>            Specify the directory in which to create a temporary directory. If this option is not provided, a temporary directory will be created in the default system temporary directory (/tmp)
+  -c, --conf <FILE>                Specify the tataki configuration file. If this option is not provided, the default configuration will be used. The option `--dry-run` shows the default configuration file
+  -t, --tidy                       Attempt to read the whole lines from the input files
+  -n, --num-records <NUM_RECORDS>  Number of records to read from the input file. Conflicts with `--tidy` option [default: 100000]
+      --dry-run                    Output the configuration file in yaml format and exit the program. If `--conf` option is not provided, the default configuration file will be shown
+  -v, --verbose                    Show verbose log messages
+  -q, --quiet                      Suppress all log messages
+  -h, --help                       Print help
+  -V, --version                    Print version
 
-Version: v0.2.2
+Version: v0.3.0
 ```
 
 ## Detailed Usage
+
+### Changing the number of records to read
+
+By default, Tataki reads the first 100,000 records of the input file. You can change this number by using the `-n|--num-records=<NUM_RECORDS>` option.
+
+```shell
+tataki <FILE|URL> -n 1000
+```
+
+#### Avoiding misidentifyll
+
+By using the `-t|--tidy` option, Tataki attempts to read the whole lines from the input files. This options helps when the file is truncated or its end is corrupted.
+
+```shell
+tataki <FILE|URL> -t
+```
 
 ### Determining Formats in Your Preferred Order
 

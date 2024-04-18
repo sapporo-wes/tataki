@@ -3,7 +3,7 @@ FROM debian:bookworm-slim
 
 LABEL org.opencontainers.image.authors="Tazro Ohta (tazro.ohta@chiba-u.jp)"
 LABEL org.opencontainers.image.url="https://github.com/sapporo-wes/tataki"
-LABEL org.opencontainers.image.version="v0.2.2"
+LABEL org.opencontainers.image.version="v0.3.0"
 LABEL org.opencontainers.image.licenses="Apache2.0"
 LABEL org.opencontainers.image.description="CLI tool designed primarily for detecting file formats in the bio-science field"
 
