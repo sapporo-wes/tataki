@@ -18,8 +18,9 @@ RUN curl -fsSL -o /tmp/docker.tgz https://download.docker.com/linux/static/stabl
     mv /tmp/docker/* /usr/bin/ && \
     rm -rf /tmp/docker /tmp/docker.tgz
 
-ADD https://github.com/sapporo-wes/tataki/releases/latest/download/tataki /usr/bin/tataki
-RUN chmod +x /usr/bin/tataki
+# ADD https://github.com/sapporo-wes/tataki/releases/latest/download/tataki /usr/bin/tataki
+RUN curl -fsSL -o /usr/bin/tataki https://github.com/sapporo-wes/tataki/releases/latest/download/tataki-$(uname -m) && \
+    chmod +x /usr/bin/tataki
 
 WORKDIR /app
 
