@@ -113,7 +113,7 @@ By default, Tataki reads the first 100,000 records of the input file. You can ch
 tataki <FILE|URL> -n 1000
 ```
 
-#### Avoiding misidentifyll
+#### Avoiding misidentification of file formats of corrupted files
 
 By using the `-t|--tidy` option, Tataki attempts to read the whole lines from the input files. This options helps when the file is truncated or its end is corrupted.
 
