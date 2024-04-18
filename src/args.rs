@@ -45,6 +45,18 @@ pub struct Args {
     #[clap(short, long, value_name = "FILE")]
     pub conf: Option<PathBuf>,
 
+    /// Attempt to read the whole lines from the input files.
+    #[clap(long, conflicts_with_all = ["num_lines"])]
+    pub tidy: bool,
+
+    /// Do not try to decompress the input file when detecting the file format.
+    #[clap(long)]
+    pub no_decompress: bool,
+
+    /// Number of lines to read from the input file. Ignored when `--tidy` is provided.
+    #[clap(short, long, default_value = "10000")]
+    pub num_lines: usize,
+
     /// Output the configuration file in yaml format and exit the program. If `--conf` option is not provided, the default configuration file will be shown.
     #[clap(long)]
     pub dry_run: bool,

@@ -7,6 +7,8 @@ use tempfile::{NamedTempFile, TempDir};
 use url::Url;
 
 use crate::args::{Args, OutputFormat};
+use crate::source::Source;
+use crate::buffered_read_seek::OnetimeRewindableReader;
 
 // Struct to store the result of Parser invocation and ExtTools invocation.
 #[derive(Debug)]
@@ -118,11 +120,30 @@ pub struct Config {
     order: Vec<String>,
 }
 
+pub struct InvokeOptions {
+    pub tidy: bool,
+    pub no_decompress: bool,
+    pub num_lines: usize,
+}
+
+impl From<&Args> for InvokeOptions {
+    fn from(args: &Args) -> Self {
+        Self {
+            tidy: args.tidy,
+            no_decompress: args.no_decompress,
+            num_lines: args.num_lines,
+        }
+    }
+}
+
 pub fn run(config: Config, args: Args) -> Result<()> {
     crate::logger::init_logger(args.verbose, args.quiet);
     info!("tataki started");
     debug!("Args: {:?}", args);
     debug!("Output format: {:?}", args.get_output_format());
+
+    // let invoke_options = InvokeOptions::from(&args);
+    let invoke_options = InvokeOptions::from(&args);
 
     let temp_dir = crate::fetch::create_temporary_dir(&args.cache_dir)?;
     info!("Created temporary directory: {}", temp_dir.path().display());
@@ -136,31 +157,48 @@ pub fn run(config: Config, args: Args) -> Result<()> {
     for input in &args.input {
         info!("Processing input: {}", input);
 
-        // Prepare input file path from url or local file path.
-        // Download the file and store it in the specified cache directory if input is url.
-        // let target_file_path = match input.as_ref().and_then(|input| Url::parse(input).ok()) {
-        let target_file_path = match Url::parse(input).ok() {
-            Some(url) => {
-                info!("Downloading from {}", url);
-                let path = crate::fetch::download_from_url(&url, &temp_dir)?;
-                info!("Downloaded to {}", path.display());
-                path
+        // TODO: ここで、inputがstdinだったらtidyゆるさないよ、とかやる必要がある。
+        // TODO: --tidy + 圧縮path の場合はreaderで渡したほうがいい気がする。 
+        // Check if the input is stdin or path. If path, download the file if it is a url.
+        let target_source = match input.parse::<Source>()? {
+            Source::FilePath(p) => {
+                // Prepare input file path from url or local file path.
+                // Download the file and store it in the specified cache directory if input is url.
+                let target_file_path = match Url::parse(&p.to_string_lossy()).ok() {
+                    Some(url) => {
+                        info!("Downloading from {}", url);
+                        let path = crate::fetch::download_from_url(&url, &temp_dir)?;
+                        info!("Downloaded to {}", path.display());
+                        path
+                    }
+                    None => {
+                        let path = PathBuf::from(input);
+                        if !path.exists() {
+                            bail!("The specified target file does not exist. Please check the path. : {}" ,path.display()
+                            );
+                        }
+                        path
+                    }
+                };
+                Source::FilePath(target_file_path)
+                // TODO 必要だったらtempfileにせなかん
             }
-            None => {
-                let path = PathBuf::from(input);
-                if !path.exists() {
-                    bail!(
-                        "The specified target file does not exist. Please check the path. : {}",
-                        path.display()
-                    );
-                }
-                path
-            }
+            Source::Stdin => {
+                Source::convert_into_tempfile_from_stdin(&invoke_options, &temp_dir)?
+            },
+            Source::TempFile(_) => unreachable!(),
+            Source::Memory(_) => unreachable!(),
         };
 
-        let mut module_result = run_modules(target_file_path, &config, &temp_dir)?;
+        let mut module_result = run_modules(target_source, &config, &temp_dir, &invoke_options)?;
+
+
         module_result.set_input(input.clone());
         module_results.push(module_result);
+
+        // TODO ここでSource::TempFileを使った場合は消す。
+
+        
     }
 
     // if args.cache_dir is Some, keep the temporary directory.
@@ -193,19 +231,30 @@ pub fn run(config: Config, args: Args) -> Result<()> {
 }
 
 fn run_modules(
-    target_file_path: PathBuf,
+    // target_file_path: PathBuf,
+    mut target_source: Source,
     config: &Config,
     temp_dir: &TempDir,
+    invoke_options: &InvokeOptions,
 ) -> Result<ModuleResult> {
-    // create an input file for CWL modules if there is any CWL module in the config file.
-    let cwl_input_file_path: Option<NamedTempFile> = if cwl_module_exists(config)? {
-        Some(crate::ext_tools::make_cwl_input_file(
-            target_file_path.clone(),
-            temp_dir,
-        )?)
-    } else {
-        None
-    };
+    // Create an input file for CWL modules if there is any CWL module in the config file and input is not stdin.
+    let cwl_input_file_path: Option<NamedTempFile> =
+        // Check whether the input is not stdin
+        if let Source::FilePath(target_file_path) = &target_source {
+            // Check whether CWL modules exist in teh config file.
+            if cwl_module_exists(config)? {
+                Some(crate::ext_tools::make_cwl_input_file(
+                    target_file_path.clone(),
+                    temp_dir,
+                )?)
+            } else {
+                None
+            }
+        } 
+        // Not invoking CWL module if the input is stdin, therefore return None here.
+        else {
+            None
+        };
 
     let module_result = config
         .order
@@ -218,12 +267,23 @@ fn run_modules(
                 .unwrap_or("");
 
             let result = match module_extension {
-                "" => crate::parser::invoke(module, &target_file_path),
-                "cwl" => crate::ext_tools::invoke(
-                    module_path,
-                    &target_file_path,
-                    cwl_input_file_path.as_ref().unwrap(),
-                ),
+                "" => crate::parser::invoke(module, &mut target_source, invoke_options),
+                "cwl" => {
+                    // let target_file_path = target_source.as_path().
+                    // TODO ここ、match使わずに書けないか？
+                    // CWL module invocation is skipped if the input is not a file path or URL.
+                    match target_source.as_path() {
+                        Some(target_file_path) => {
+                            crate::ext_tools::invoke(
+                            module_path,
+                            target_file_path,
+                            cwl_input_file_path.as_ref().unwrap(),
+                            invoke_options,)
+                        },
+                        None =>  Err(anyhow!("Skipping CWL module invocation. CWL modules can only be invoked with file paths or URLs.")),
+                    }
+
+                },
                 _ => Err(anyhow!(
                     "An unsupported file extension '.{}' was specified for the module value in the conf file. Only .cwl is supported for external extension mode.",
                     module_extension
@@ -251,6 +311,8 @@ fn run_modules(
             }
         })
         .unwrap_or_else(|| {ModuleResult::with_result(None, None)});
+
+    // std::thread::sleep(std::time::Duration::from_secs(50));
 
     Ok(module_result)
 }

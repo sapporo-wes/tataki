@@ -1,20 +1,21 @@
-mod bam;
-mod bcf;
-mod bed;
-mod cram;
-mod empty;
-mod fasta;
+// mod bam;
+// mod bcf;
+// mod bed;
+// mod cram;
+// mod empty;
+// mod fasta;
 mod fastq;
-mod gff3;
-mod gtf;
-mod sam;
-mod vcf;
+// mod gff3;
+// mod gtf;
+// mod sam;
+// mod vcf;
 
 use anyhow::{bail, Result};
 use log::info;
 use std::path::Path;
 
-use crate::module::ModuleResult;
+use crate::module::{InvokeOptions, ModuleResult};
+use crate::source::Source;
 
 pub trait Parser {
     /// Determine if the provided file is in a format that this parser can interpret.
@@ -23,40 +24,65 @@ pub trait Parser {
     /// To construct `ModuleResult`, utilize `ModuleResult::with_result()` which requires `label` and `id` as parameters.
     /// `id`: EDAM Class ID
     /// `label`: EDAM Preferred Label
-    fn determine(&self, input_path: &Path) -> Result<ModuleResult>;
+    fn determine_from_path(
+        &self,
+        input_path: &Path,
+        options: &InvokeOptions,
+    ) -> Result<ModuleResult>;
 }
 
 pub fn from_str_to_parser(module_name: &str) -> Result<Box<dyn Parser>> {
     let module_name = module_name.to_lowercase();
     match &module_name[..] {
-        "bam" => Ok(Box::new(bam::Bam)),
-        "bcf" => Ok(Box::new(bcf::Bcf)),
-        "bed" => Ok(Box::new(bed::Bed)),
-        "cram" => Ok(Box::new(cram::Cram)),
-        "empty" => Ok(Box::new(empty::Empty)),
-        "fasta" => Ok(Box::new(fasta::Fasta)),
+        // "bam" => Ok(Box::new(bam::Bam)),
+        // "bcf" => Ok(Box::new(bcf::Bcf)),
+        // "bed" => Ok(Box::new(bed::Bed)),
+        // "cram" => Ok(Box::new(cram::Cram)),
+        // "empty" => Ok(Box::new(empty::Empty)),
+        // "fasta" => Ok(Box::new(fasta::Fasta)),
         "fastq" => Ok(Box::new(fastq::Fastq)),
-        "gff3" => Ok(Box::new(gff3::Gff3)),
-        "gff" => Ok(Box::new(gff3::Gff3)),
-        "gtf" => Ok(Box::new(gtf::Gtf)),
-        "sam" => Ok(Box::new(sam::Sam)),
-        "vcf" => Ok(Box::new(vcf::Vcf)),
+        // "gff3" => Ok(Box::new(gff3::Gff3)),
+        // "gff" => Ok(Box::new(gff3::Gff3)),
+        // "gtf" => Ok(Box::new(gtf::Gtf)),
+        // "sam" => Ok(Box::new(sam::Sam)),
+        // "vcf" => Ok(Box::new(vcf::Vcf)),
         _ => bail!("Unsupported parser name: {}", module_name),
     }
 }
 
 // Return the result of determine() using Ok(ModuleResult), and return errors in other parts using Err.
-pub fn invoke(module_name: &str, target_file_path: &Path) -> Result<ModuleResult> {
+pub fn invoke(
+    module_name: &str,
+    target_source: &mut Source,
+    options: &InvokeOptions,
+) -> Result<ModuleResult> {
     info!("Invoking parser {}", module_name);
 
     let parser = from_str_to_parser(module_name)?;
 
-    Ok(parser.determine(target_file_path).unwrap_or_else(|e| {
-        let mut module_result = ModuleResult::with_result(None, None);
-        module_result.set_is_ok(false);
-        module_result.set_error_message(e.to_string());
-        module_result
-    }))
+    // Convert Source to readable object
+    let target_file_path = match target_source {
+        Source::FilePath(target_file_path) => target_file_path,
+        Source::TempFile(target_temp_file) => {
+            let target_file_path = target_temp_file.path();
+            target_file_path
+        }
+        Source::Stdin => {
+            unreachable!()
+        }
+        Source::Memory(_) => {
+            unreachable!()
+        }
+    };
+
+    Ok(parser
+        .determine_from_path(target_file_path, options)
+        .unwrap_or_else(|e| {
+            let mut module_result = ModuleResult::with_result(None, None);
+            module_result.set_is_ok(false);
+            module_result.set_error_message(e.to_string());
+            module_result
+        }))
 }
 
 #[cfg(test)]

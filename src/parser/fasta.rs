@@ -6,7 +6,7 @@ use crate::parser::Parser;
 pub struct Fasta;
 
 impl Parser for Fasta {
-    fn determine(&self, input_path: &Path) -> anyhow::Result<ModuleResult> {
+    fn determine_from_path(&self, input_path: &Path) -> anyhow::Result<ModuleResult> {
         let mut reader = noodles::fasta::reader::Builder.build_from_path(input_path)?;
 
         for result in reader.records() {

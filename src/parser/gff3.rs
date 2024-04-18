@@ -8,7 +8,7 @@ use crate::parser::Parser;
 pub struct Gff3;
 
 impl Parser for Gff3 {
-    fn determine(&self, input_path: &Path) -> anyhow::Result<ModuleResult> {
+    fn determine_from_path(&self, input_path: &Path) -> anyhow::Result<ModuleResult> {
         let mut reader = File::open(input_path)
             .map(BufReader::new)
             .map(noodles::gff::Reader::new)?;

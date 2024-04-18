@@ -8,7 +8,7 @@ use crate::parser::Parser;
 pub struct Gtf;
 
 impl Parser for Gtf {
-    fn determine(&self, input_path: &Path) -> anyhow::Result<ModuleResult> {
+    fn determine_from_path(&self, input_path: &Path) -> anyhow::Result<ModuleResult> {
         let mut reader = File::open(input_path)
             .map(BufReader::new)
             .map(noodles::gtf::Reader::new)?;

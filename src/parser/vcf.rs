@@ -6,7 +6,7 @@ use crate::parser::Parser;
 pub struct Vcf;
 
 impl Parser for Vcf {
-    fn determine(&self, input_path: &Path) -> anyhow::Result<ModuleResult> {
+    fn determine_from_path(&self, input_path: &Path) -> anyhow::Result<ModuleResult> {
         let mut reader = noodles::vcf::reader::Builder::default().build_from_path(input_path)?;
 
         let header = reader.read_header()?;
