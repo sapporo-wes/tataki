@@ -24,6 +24,9 @@ fn main() -> Result<()> {
         }
     };
 
+    // exit the program with exit code 0
+    // exit(0);
+
     if args.dry_run {
         tataki::module::dry_run(config)?;
     } else {

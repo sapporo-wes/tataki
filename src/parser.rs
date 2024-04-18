@@ -14,7 +14,8 @@ use anyhow::{bail, Result};
 use log::info;
 use std::path::Path;
 
-use crate::module::ModuleResult;
+use crate::module::{InvokeOptions, ModuleResult};
+use crate::source::Source;
 
 pub trait Parser {
     /// Determine if the provided file is in a format that this parser can interpret.
@@ -23,7 +24,11 @@ pub trait Parser {
     /// To construct `ModuleResult`, utilize `ModuleResult::with_result()` which requires `label` and `id` as parameters.
     /// `id`: EDAM Class ID
     /// `label`: EDAM Preferred Label
-    fn determine(&self, input_path: &Path) -> Result<ModuleResult>;
+    fn determine_from_path(
+        &self,
+        input_path: &Path,
+        options: &InvokeOptions,
+    ) -> Result<ModuleResult>;
 }
 
 pub fn from_str_to_parser(module_name: &str) -> Result<Box<dyn Parser>> {
@@ -46,17 +51,35 @@ pub fn from_str_to_parser(module_name: &str) -> Result<Box<dyn Parser>> {
 }
 
 // Return the result of determine() using Ok(ModuleResult), and return errors in other parts using Err.
-pub fn invoke(module_name: &str, target_file_path: &Path) -> Result<ModuleResult> {
+pub fn invoke(
+    module_name: &str,
+    target_source: &Source,
+    options: &InvokeOptions,
+) -> Result<ModuleResult> {
     info!("Invoking parser {}", module_name);
 
     let parser = from_str_to_parser(module_name)?;
 
-    Ok(parser.determine(target_file_path).unwrap_or_else(|e| {
-        let mut module_result = ModuleResult::with_result(None, None);
-        module_result.set_is_ok(false);
-        module_result.set_error_message(e.to_string());
-        module_result
-    }))
+    // Convert Source to readable object
+    let target_file_path = match target_source {
+        Source::FilePath(target_file_path) => target_file_path,
+        Source::TempFile(target_temp_file) => target_temp_file.path(),
+        Source::Stdin => {
+            unreachable!()
+        }
+        Source::Memory(_) => {
+            unreachable!()
+        }
+    };
+
+    Ok(parser
+        .determine_from_path(target_file_path, options)
+        .unwrap_or_else(|e| {
+            let mut module_result = ModuleResult::with_result(None, None);
+            module_result.set_is_ok(false);
+            module_result.set_error_message(e.to_string());
+            module_result
+        }))
 }
 
 #[cfg(test)]
@@ -71,7 +94,13 @@ mod tests {
         label: &str,
         id: &str,
     ) {
-        let result = invoke(module_name, target_file_path).unwrap();
+        let target_source = Source::FilePath(target_file_path.to_path_buf());
+        let options = InvokeOptions {
+            tidy: true,
+            no_decompress: false,
+            num_records: 100000,
+        };
+        let result = invoke(module_name, &target_source, &options).unwrap();
 
         assert_eq!(result.label(), Some(&label.to_string()));
         assert_eq!(result.id(), Some(&id.to_string()));
@@ -83,7 +112,13 @@ mod tests {
         target_file_path: &Path,
         error_message: &str,
     ) {
-        let result = invoke(module_name, target_file_path).unwrap();
+        let target_source = Source::FilePath(target_file_path.to_path_buf());
+        let options = InvokeOptions {
+            tidy: true,
+            no_decompress: false,
+            num_records: 100000,
+        };
+        let result = invoke(module_name, &target_source, &options).unwrap();
 
         assert_eq!(result.error_message(), Some(&error_message.to_string()));
     }
