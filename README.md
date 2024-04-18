@@ -42,9 +42,9 @@ path/to/unknown/file.txt:
 A single binary is available for Linux x86_64.
 
 ```shell
-curl -fsSL -O https://github.com/sapporo-wes/tataki/releases/latest/download/tataki
+curl -fsSL -o ./tataki https://github.com/sapporo-wes/tataki/releases/latest/download/tataki-$(uname -m)
 chmod +x ./tataki
-./tataki -V
+./tataki --help
 ```
 
 ### Basic Usage
