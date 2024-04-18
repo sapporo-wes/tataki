@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use tempfile::{Builder, NamedTempFile, TempDir};
 
 use crate::edam;
-use crate::module::ModuleResult;
+use crate::module::{InvokeOptions, ModuleResult};
 
 const CWL_INSPECTOR_DOCKER_IMAGE: &str = "ghcr.io/tom-tan/cwl-inspector:v0.1.1";
 const LABEL_KEY: &str = "label";
@@ -17,6 +17,7 @@ pub fn invoke(
     cwl_file_path: &Path,
     target_file_path: &Path,
     cwl_input_file_path: &NamedTempFile,
+    options: &InvokeOptions,
 ) -> Result<ModuleResult> {
     info!("Invoking ext_tools {}", cwl_file_path.display());
 

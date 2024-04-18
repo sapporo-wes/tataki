@@ -1,14 +1,18 @@
 use std::fs;
 use std::path::Path;
 
-use crate::module::ModuleResult;
+use crate::module::{InvokeOptions, ModuleResult};
 use crate::parser::Parser;
 
 pub struct Empty;
 
 impl Parser for Empty {
     // check if the file is empty or not.
-    fn determine(&self, input_path: &Path) -> anyhow::Result<ModuleResult> {
+    fn determine_from_path(
+        &self,
+        input_path: &Path,
+        #[allow(unused_variables)] options: &InvokeOptions,
+    ) -> anyhow::Result<ModuleResult> {
         let metadata = fs::metadata(input_path)?;
         if metadata.len() == 0 {
             Ok(ModuleResult::with_result(
