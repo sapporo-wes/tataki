@@ -65,9 +65,8 @@ This may take while depending on the file size.
 
 ```shell
 $ tataki https://path/to/unknown/file.txt  -q --tidy
-https://path/to/unknown/file.txt:
-  label: BAM
-  id: http://edamontology.org/format_2572
+File Path,Edam ID,Label
+https://path/to/unknown/file.txt,http://edamontology.org/format_2572,BAM
 ```
 
 ### Usage
