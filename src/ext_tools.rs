@@ -17,7 +17,7 @@ pub fn invoke(
     cwl_file_path: &Path,
     target_file_path: &Path,
     cwl_input_file_path: &NamedTempFile,
-    options: &InvokeOptions,
+    _options: &InvokeOptions,
 ) -> Result<ModuleResult> {
     info!("Invoking ext_tools {}", cwl_file_path.display());
 

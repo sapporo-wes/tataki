@@ -7,18 +7,39 @@ use common::{calculate_checksum, tataki};
 
 /*
 test cases:
-- default
-- -f yaml
-- -f json --cache-dir
-- -o file
-- -c conf
-- --dry-run
-- --quiet
-- --verbose
-- -c cwl.conf
+1. default
+2. -f yaml
+3. -f json --cache-dir
+4. -o file
+5. -c conf
+6. --dry-run
+7. --quiet
+8. --verbose
+9. -c cwl.conf
+
+new test cases involving new features:
+10. --num-records <LINES>
+11. --tidy
+12. read STDIN
+    1. --num-records - (check #lines of a tempfile)
+    2. gzipped stdin
+    3. conflicts w/ `--tidy`
+    4. conflictl w/ cwl extension mode
+13. read compressed file
+    1. types
+        1. read gzipped file
+        2. read bz2 file
+        3. read bzgf file
+    2. --no-decompress
+    3. --tidy
+    4. conflicts w/ cwl extension mode
+
+
+13. --no-decompress
 */
 
 #[test]
+// 1. default
 fn output_in_csv() {
     let out = tataki(&["./inputs/toy.sam", "./inputs/toy.fa"], &[]);
 
@@ -42,6 +63,7 @@ fn output_in_csv() {
 }
 
 #[test]
+// 2. -f yaml
 fn output_in_yaml() {
     let out = tataki(&["./inputs/toy.sam", "./inputs/toy.fa"], &["-f", "yaml"]);
 
@@ -62,6 +84,7 @@ fn output_in_yaml() {
 }
 
 #[test]
+// 3. -f json --cache-dir
 fn output_in_json_and_can_keep_cache() {
     let out = tataki(
         &[
@@ -110,7 +133,7 @@ fn output_in_json_and_can_keep_cache() {
 }
 
 #[test]
-
+// 4. -o file
 fn can_output_to_file() {
     let _ = tataki(
         &["./inputs/toy.sam", "./inputs/toy.fa"],
@@ -125,11 +148,12 @@ fn can_output_to_file() {
 
     assert_eq!(
         output_sha256,
-        "81afa82dcd25f408d0f9a1e3ef01f360c158bb3cdbe2e59e8b6f648a34c8972c"
+        "b60ee9b2d903fa08aa29575e2a1b719ce3b678b374e2fb57ee64355e10534840"
     );
 }
 
 #[test]
+// 5. -c conf
 // Check if the output becomes null when a conf without sam and fasta is specified.
 fn can_use_config_file() {
     let out = tataki(
@@ -157,6 +181,7 @@ fn can_use_config_file() {
 }
 
 #[test]
+// 6. --dry-run
 fn can_dry_run() {
     let out = tataki(&["./inputs/toy.sam", "./inputs/toy.fa"], &["--dry-run"]);
 
@@ -177,6 +202,7 @@ fn can_dry_run() {
 }
 
 #[test]
+// 7. --quiet
 fn can_be_quiet() {
     let out = tataki(&["./inputs/toy.sam", "./inputs/toy.fa"], &["--quiet"]);
 
@@ -186,6 +212,7 @@ fn can_be_quiet() {
 }
 
 #[test]
+// 8. --verbose
 fn can_be_verbose() {
     let out = tataki(&["./inputs/toy.sam", "./inputs/toy.fa"], &["--verbose"]);
 
@@ -195,6 +222,7 @@ fn can_be_verbose() {
 }
 
 #[test]
+// 9. -c cwl.conf
 fn can_run_cwl() {
     let out = tataki(
         &["./inputs/toy.py", "./inputs/toy.fa"],
@@ -211,6 +239,56 @@ fn can_run_cwl() {
 
     let mut expected_output_rdr =
         csv::Reader::from_path(Path::new("tests/outputs/expected_output_run_cwl.csv"))
+            .expect("Failed to read the expected output file");
+    let expected_output_records = expected_output_rdr
+        .records()
+        .collect::<Result<Vec<_>, csv::Error>>()
+        .expect("Failed to parse the expected output as CSV");
+
+    assert_eq!(output_records, expected_output_records);
+}
+
+#[test]
+// 10. --num-records <LINES>
+// Check if tataki only reads a single records. The second line of the input file is in abnormal format. If tataki reads more than one record, this assert fails.
+fn can_limit_the_number_of_output_records() {
+    let out = tataki(&["./inputs/toy_invalid_flag.sam"], &["--num-records", "1"]);
+
+    let stdout = out.stdout;
+
+    let mut rdr = csv::Reader::from_reader(stdout.as_bytes());
+    let output_records = rdr
+        .records()
+        .collect::<Result<Vec<_>, csv::Error>>()
+        .expect("Failed to parse the output as CSV");
+
+    let mut expected_output_rdr =
+        csv::Reader::from_path(Path::new("tests/outputs/expected_output_num_records.csv"))
+            .expect("Failed to read the expected output file");
+    let expected_output_records = expected_output_rdr
+        .records()
+        .collect::<Result<Vec<_>, csv::Error>>()
+        .expect("Failed to parse the expected output as CSV");
+
+    assert_eq!(output_records, expected_output_records);
+}
+
+#[test]
+// 11. --tidy
+// Check if tataki attempt to read the whole lines of the input file and fail when parsing the line right after `--num-records` lines.
+fn can_read_entirety_of_input_file() {
+    let out = tataki(&["./inputs/toy.sam", "./inputs/toy.fa"], &["--tidy"]);
+
+    let stdout = out.stdout;
+
+    let mut rdr = csv::Reader::from_reader(stdout.as_bytes());
+    let output_records = rdr
+        .records()
+        .collect::<Result<Vec<_>, csv::Error>>()
+        .expect("Failed to parse the output as CSV");
+
+    let mut expected_output_rdr =
+        csv::Reader::from_path(Path::new("tests/outputs/expected_output.csv"))
             .expect("Failed to read the expected output file");
     let expected_output_records = expected_output_rdr
         .records()

@@ -19,21 +19,20 @@ impl<R: Read> OnetimeRewindableReader<R> {
 impl<R: Read> Read for OnetimeRewindableReader<R> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         if let Some(ref mut buffer) = self.buffer {
-            // 既にバッファがある場合はそこから読み取る
+            // read from the buffer if it exists
             let count = buffer.read(buf)?;
             if count == 0 {
-                // バッファが空になった場合は、元の入力から読み取る
-                let innercount = self.inner.read(buf);
-                innercount
+                // if the buffer is empty, read from the original input
+                self.inner.read(buf)
             } else {
                 Ok(count)
             }
         } else {
-            // 初回の読み取りでバッファを準備
+            // Prepare the buffer for the first read
             let mut temp_buffer = vec![0; buf.len()];
             let count = self.inner.read(&mut temp_buffer)?;
             if count > 0 {
-                // 読み取ったデータをバッファとして保存
+                // save the read data as a buffer
                 self.buffer = Some(Cursor::new(temp_buffer));
                 self.read(buf)
             } else {
