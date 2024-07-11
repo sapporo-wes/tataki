@@ -63,6 +63,7 @@ impl EdamMap {
     }
 }
 
+// A internal struct to deserialize EDAM table.
 #[derive(Debug, Clone, Deserialize)]
 struct Edam {
     #[serde(rename = "Class ID")]
