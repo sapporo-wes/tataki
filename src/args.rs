@@ -20,19 +20,25 @@ pub enum OutputFormat {
 )]
 
 pub struct Args {
-    /// Path to the file
-    #[clap(name = "FILE|URL", required_unless_present = "dry_run")]
+    /// Path to the file, URL, or "-" to read from standard input. Multiple inputs can be specified.
+    #[clap(name = "FILE|URL|'-'", required_unless_present = "dry_run")]
     pub input: Vec<String>,
 
     /// Path to the output file [default: stdout]
     #[clap(short, long, value_name = "FILE")]
     pub output: Option<PathBuf>,
 
-    #[clap(short = 'f', value_enum, default_value = "csv",conflicts_with_all = ["yaml"])]
+    #[clap(short = 'f', value_enum, default_value = "csv",conflicts_with_all = ["yaml", "json", "tsv"])]
     output_format: OutputFormat,
 
-    #[clap(long, hide = true)]
+    #[clap(long, hide = true, conflicts_with_all = ["output_format", "json", "tsv"])]
     yaml: bool,
+
+    #[clap(long, hide = true, conflicts_with_all = ["output_format", "yaml", "tsv"])]
+    json: bool,
+
+    #[clap(long, hide = true, conflicts_with_all = ["output_format", "yaml", "json"])]
+    tsv: bool,
 
     /// Specify the directory in which to create a temporary directory. If this option is not provided, a temporary directory will be created in the default system temporary directory (/tmp).
     #[clap(short = 'C', long, value_name = "DIR")]
@@ -74,6 +80,10 @@ impl Args {
     pub fn get_output_format(&self) -> OutputFormat {
         if self.yaml {
             OutputFormat::Yaml
+        } else if self.json {
+            OutputFormat::Json
+        } else if self.tsv {
+            OutputFormat::Tsv
         } else {
             self.output_format
         }
