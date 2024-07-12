@@ -86,34 +86,35 @@ impl Source {
 
         // TODO check
         // if not inferrable, then None.
-        let compressed_format: CompressedFormat =
-            if let Some(inferred_type) = infer::get(&buffer[..bytes_read]) {
-                let extension = inferred_type.extension();
-                match extension {
-                    "gz" => {
-                        // check if the gz file is in BGZF format
-                        if is_gzfile_in_bgzf(&buffer) {
-                            debug!("Provided input is in BGZF format");
-                            CompressedFormat::Bgzf
-                        } else {
-                            debug!("Provided input is in GZ format");
-                            CompressedFormat::GZ
-                        }
-                    }
-                    "bz2" => {
-                        debug!("Provided input is in BZ2 format");
-                        CompressedFormat::BZ2
-                    }
-                    _ => {
-                        warn!("Provided input is in compressed format not supported by this tool");
-                        CompressedFormat::None
+        let compressed_format: CompressedFormat = if let Some(inferred_type) =
+            infer::get(&buffer[..bytes_read])
+        {
+            let extension = inferred_type.extension();
+            match extension {
+                "gz" => {
+                    // check if the gz file is in BGZF format
+                    if is_gzfile_in_bgzf(&buffer) {
+                        debug!("Provided input is in BGZF format");
+                        CompressedFormat::Bgzf
+                    } else {
+                        debug!("Provided input is in GZ format");
+                        CompressedFormat::GZ
                     }
                 }
-            } else {
-                // type was not inferred, return None
-                warn!("Provided input is in compressed format not supported by this tool");
-                CompressedFormat::None
-            };
+                "bz2" => {
+                    debug!("Provided input is in BZ2 format");
+                    CompressedFormat::BZ2
+                }
+                _ => {
+                    warn!("Provided input is in compressed format not supported by this tool. Parsing the input as is.");
+                    CompressedFormat::None
+                }
+            }
+        } else {
+            // type was not inferred, return None
+            warn!("Comressed format of the input is not inferrable. Parsing the input as is.");
+            CompressedFormat::None
+        };
 
         // if input is plain text or in BGZF, we are not going to decompress it
         let mut inferred_reader: Box<dyn Read> = match compressed_format {
@@ -177,35 +178,36 @@ impl Source {
 
         // if not inferrable, then None.
         // TODO refactor into a function
-        let compressed_format: CompressedFormat =
-            if let Some(inferred_type) = infer::get(&buffer[..bytes_read]) {
-                let extension = inferred_type.extension();
-                match extension {
-                    "gz" => {
-                        // check if the gz file is in BGZF format
-                        if is_gzfile_in_bgzf(&buffer) {
-                            is_bgzf = true;
-                            debug!("Provided input is in BGZF format");
-                            CompressedFormat::Bgzf
-                        } else {
-                            debug!("Provided input is in GZ format");
-                            CompressedFormat::GZ
-                        }
-                    }
-                    "bz2" => {
-                        debug!("Provided input is in BZ2 format");
-                        CompressedFormat::BZ2
-                    }
-                    _ => {
-                        warn!("Provided input is in compressed format not supported by this tool");
-                        CompressedFormat::None
+        let compressed_format: CompressedFormat = if let Some(inferred_type) =
+            infer::get(&buffer[..bytes_read])
+        {
+            let extension = inferred_type.extension();
+            match extension {
+                "gz" => {
+                    // check if the gz file is in BGZF format
+                    if is_gzfile_in_bgzf(&buffer) {
+                        is_bgzf = true;
+                        debug!("Provided input is in BGZF format");
+                        CompressedFormat::Bgzf
+                    } else {
+                        debug!("Provided input is in GZ format");
+                        CompressedFormat::GZ
                     }
                 }
-            } else {
-                // type was not inferred, return None
-                warn!("Provided input is in compressed format not supported by this tool");
-                CompressedFormat::None
-            };
+                "bz2" => {
+                    debug!("Provided input is in BZ2 format");
+                    CompressedFormat::BZ2
+                }
+                _ => {
+                    warn!("Provided input is in compressed format not supported by this tool. Parsing the input as is.");
+                    CompressedFormat::None
+                }
+            }
+        } else {
+            // type was not inferred, return None
+            warn!("Comressed format of the input is not inferrable. Parsing the input as is.");
+            CompressedFormat::None
+        };
 
         // use the reader as is if no_decompress is true
         let mut inferred_reader: Box<dyn Read> = if options.no_decompress {
