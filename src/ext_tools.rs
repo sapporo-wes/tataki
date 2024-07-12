@@ -72,7 +72,7 @@ pub fn invoke(
         String::from_utf8(inspector_process.stdout)?
     } else {
         let stderr = String::from_utf8_lossy(&inspector_process.stderr);
-        bail!("Failed to run cwl-inspector:\n{}", stderr);
+        bail!("Failed to run 'cwl-inspector' image:\n{}", stderr);
     };
 
     // split the docker command into a vector of strings.
@@ -166,9 +166,9 @@ struct CwlMetadata {
 fn get_metadata_fields_from_cwl_file(cwl_file_path: &Path) -> Result<HashMap<String, String>> {
     // Extract the EDAM_ID and LABEL from metadata in the CWL file. ex:
     // $namespaces:
-    //   tataki: https://tataki.io/
+    //   tataki: https://github.com/sapporo-wes/tataki
     // tataki:edam_id: http://edamontology.org/format_2573
-    // tataki:label: sam
+    // tataki:label: SAM
     let file = std::fs::File::open(cwl_file_path)?;
     let reader = std::io::BufReader::new(file);
     let cwl_metadata: CwlMetadata = serde_yaml::from_reader(reader)
