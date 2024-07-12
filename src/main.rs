@@ -13,7 +13,9 @@ fn main() -> Result<()> {
             serde_yaml::from_str(config_str)?
         }
         Some(path) => {
-            let config_file = File::open(path)?;
+            let config_file = File::open(path).with_context(|| {
+                format!("Failed to open the config file: {}", path.to_str().unwrap(),)
+            })?;
             let reader = BufReader::new(config_file);
             serde_yaml::from_reader(reader).with_context(|| {
                 format!(
