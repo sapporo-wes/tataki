@@ -39,8 +39,9 @@ pub fn invoke(
         .with_context(|| format!("The specified path of CWL document '{}' does not exist. Please check the path for typos and try again.", cwl_file_path.display()))?;
 
     // get the EDAM_ID and LABEL from the comment lines in the CWL file.
-    let mut cwl_metadatas = get_metadata_fields_from_cwl_file(&cwl_file_path)?;
-    validate_id_and_label(&mut cwl_metadatas, &cwl_file_path)?;
+    let mut cwl_fields = get_fields_from_cwl_file(&cwl_file_path)?;
+    let mut cwl_edam_info = extract_edam_info_from_fields(&cwl_fields)?;
+    validate_id_and_label(&mut cwl_edam_info, &cwl_file_path)?;
 
     // create a docker commandline from the CWL file using cwl-inspector.
     let inspector_process = std::process::Command::new("docker")
@@ -127,8 +128,8 @@ pub fn invoke(
         .output()?;
 
     let mut module_result = ModuleResult::with_result(
-        cwl_metadatas.get(LABEL_KEY).map(|s| s.to_string()),
-        cwl_metadatas.get(EDAM_ID_KEY).map(|s| s.to_string()),
+        cwl_edam_info.get(LABEL_KEY).map(|s| s.to_string()),
+        cwl_edam_info.get(EDAM_ID_KEY).map(|s| s.to_string()),
     );
 
     module_result.set_is_ok(cwl_docker_process.status.success());
@@ -156,14 +157,14 @@ fn docker_path() -> Result<PathBuf> {
 }
 
 #[derive(Deserialize, Debug)]
-struct CwlMetadata {
+struct CwlFields {
     #[serde(flatten)]
     entries: HashMap<String, serde_yaml::Value>,
     #[serde(rename = "$namespaces")]
     namespaces: HashMap<String, String>,
 }
 
-fn get_metadata_fields_from_cwl_file(cwl_file_path: &Path) -> Result<HashMap<String, String>> {
+fn get_fields_from_cwl_file(cwl_file_path: &Path) -> Result<CwlFields> {
     // Extract the EDAM_ID and LABEL from metadata in the CWL file. ex:
     // $namespaces:
     //   tataki: https://github.com/sapporo-wes/tataki
@@ -171,11 +172,11 @@ fn get_metadata_fields_from_cwl_file(cwl_file_path: &Path) -> Result<HashMap<Str
     // tataki:label: SAM
     let file = std::fs::File::open(cwl_file_path)?;
     let reader = std::io::BufReader::new(file);
-    let cwl_metadata: CwlMetadata = serde_yaml::from_reader(reader)
+    let cwl_fields: CwlFields = serde_yaml::from_reader(reader)
         .with_context(|| format!("Failed to parse the CWL file: {}", cwl_file_path.display()))?;
 
-    let mut extracted_fields: HashMap<String, String> = HashMap::new();
-    let (prefix, _) = cwl_metadata.namespaces.iter().next().ok_or_else(|| {
+    // check if tataki namespace is defined in the CWL file
+    let (prefix, _) = cwl_fields.namespaces.iter().next().ok_or_else(|| {
         anyhow!(
             "The CWL file does not have the $namespaces field: {}",
             cwl_file_path.display()
@@ -187,14 +188,64 @@ fn get_metadata_fields_from_cwl_file(cwl_file_path: &Path) -> Result<HashMap<Str
             cwl_file_path.display()
         );
     }
-    for (key, value) in cwl_metadata.entries.iter() {
+
+    // check if dockerRequirement is present in the CWL file.
+    let mut is_requirements_present = false;
+    for (key, value) in cwl_fields.entries.iter() {
+        if key == "requirements" {
+            is_requirements_present = true;
+            let requirements = value.as_mapping().ok_or_else(|| {
+                anyhow!(
+                    "The 'requirements' field is present in the CWL file but 'DockerRequirement' is not specified.: {}. Docker image must be specified in the CWL file.",
+                    cwl_file_path.display()
+                )
+            })?;
+            let docker_requirement = requirements
+                .get(&"DockerRequirement".to_string())
+                .ok_or_else(|| {
+                    anyhow!(
+                        "The 'DockerRequirement' field in the CWL file is not found: {}. Docker image must be specified in the CWL file.",
+                        cwl_file_path.display()
+                    )
+                })?;
+            let docker_pull = docker_requirement
+                .get(&"dockerPull".to_string())
+                .ok_or_else(|| {
+                    anyhow!(
+                        "The 'dockerPull' field in the CWL file is not found: {}. Docker image must be specified in the CWL file.",
+                        cwl_file_path.display()
+                    )
+                })?;
+            if let Some(docker_pull) = docker_pull.as_str() {
+                debug!(
+                    "The docker image '{}' is specified in the CWL file: {}",
+                    docker_pull,
+                    cwl_file_path.display()
+                );
+            }
+        }
+    }
+    if !is_requirements_present {
+        bail!(
+            "The 'requirements' field is not found in the CWL file: {}. Docker image must be specified in the CWL file.",
+            cwl_file_path.display()
+        );
+    }
+
+    Ok(cwl_fields)
+}
+
+fn extract_edam_info_from_fields(cwl_fields: &CwlFields) -> Result<HashMap<String, String>> {
+    let mut extracted_fields: HashMap<String, String> = HashMap::new();
+    let prefix = "tataki".to_owned();
+    for (key, value) in cwl_fields.entries.iter() {
+        // if the key starts with the prefix "tataki", extract the key and value.
         if let Some(stripped_key) = key.strip_prefix(&format!("{}:", prefix)) {
             let value = serde_yaml::to_string(value)?;
             let value = value.trim_end();
             extracted_fields.insert(stripped_key.to_string(), value.to_owned());
         }
     }
-
     Ok(extracted_fields)
 }
 
