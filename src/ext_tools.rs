@@ -28,9 +28,12 @@ pub fn invoke(
     );
 
     // make sure that the both paths are canonicalized.
-    let target_file_path = target_file_path
-        .canonicalize()
-        .with_context(|| format!("The specified path of CWL document '{}' does not exist. Please check the path for typos and try again.", target_file_path.display()))?;
+    let target_file_path = target_file_path.canonicalize().with_context(|| {
+        format!(
+            "Something went wrong. Target file '{}' does not exist. Please try again.",
+            target_file_path.display()
+        )
+    })?;
     let cwl_file_path = cwl_file_path
         .canonicalize()
         .with_context(|| format!("The specified path of CWL document '{}' does not exist. Please check the path for typos and try again.", cwl_file_path.display()))?;
