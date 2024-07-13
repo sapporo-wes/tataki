@@ -6,7 +6,7 @@ requirements:
     dockerPull: quay.io/biocontainers/samtools:1.18--h50ea8bc_1
   InlineJavascriptRequirement: {}
 
-baseCommand: [samtools, head]
+baseCommand: [samtools, view]
 
 successCodes: [0, 139]
 
