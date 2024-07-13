@@ -1,7 +1,7 @@
 [package]
 name = "tataki"
 authors = ["Tazro Ohta (tazro.ohta@chiba-u.jp)"]
-version = "0.4.0-alpha"
+version = "0.4.0"
 edition = "2021"
 repository = "https://github.com/sapporo-wes/tataki"
 license = "apache-2.0"
@@ -9,7 +9,7 @@ license = "apache-2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-infer = { version = "0.15.0", default-features = false }
+infer = { version = "0.16.0", default-features = false }
 clap = { version = "4.4.18", features = ["derive"] }
 nom = "7.1.3"
 noodles = { version = "0.60.0", features = [
@@ -31,7 +31,7 @@ serde = { version = "1.0.193", features = ["derive"] }
 serde_yaml = "0.9.27"
 serde_json = "1.0.109"
 url = "2.5.0"
-reqwest = { version = "0.11.22", features = ["blocking"] }
+reqwest = { version = "0.12.5", features = ["blocking"] }
 tempfile = "3.9.0"
 csv = "1.3.0"
 log = "0.4.20"
