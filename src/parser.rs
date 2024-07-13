@@ -8,6 +8,7 @@ mod fastq;
 mod gff3;
 mod gtf;
 mod sam;
+mod template;
 mod vcf;
 
 use anyhow::{bail, Result};
@@ -46,6 +47,7 @@ pub fn from_str_to_parser(module_name: &str) -> Result<Box<dyn Parser>> {
         "gtf" => Ok(Box::new(gtf::Gtf)),
         "sam" => Ok(Box::new(sam::Sam)),
         "vcf" => Ok(Box::new(vcf::Vcf)),
+        // "template" => Ok(Box::new(template::Template)),
         _ => bail!("Unsupported parser name: {}", module_name),
     }
 }
