@@ -7,7 +7,7 @@ use tempfile::{NamedTempFile, TempDir};
 use url::Url;
 
 use crate::args::{Args, OutputFormat};
-use crate::source::{Source, CompressedFormat};
+use crate::source::{CompressedFormat, Source};
 
 // Struct to store the result of Parser invocation and ExtTools invocation.
 #[derive(Debug)]
@@ -77,10 +77,10 @@ impl ModuleResult {
         self.label = compressed_format_edam.label;
         self.id = compressed_format_edam.id;
 
-    let tmp_decompressed = DecompressedFormat {
-        label: tmp_label,
-        id: tmp_id,
-    };
+        let tmp_decompressed = DecompressedFormat {
+            label: tmp_label,
+            id: tmp_id,
+        };
         self.decompressed = Some(tmp_decompressed);
     }
 
@@ -95,15 +95,27 @@ impl ModuleResult {
                     .delimiter(delimiter)
                     .from_writer(&mut data);
 
-                writer.write_record(["File Path", "Edam ID", "Label", "Decompressed ID", "Decompressed Label"])?;
+                writer.write_record([
+                    "File Path",
+                    "Edam ID",
+                    "Label",
+                    "Decompressed ID",
+                    "Decompressed Label",
+                ])?;
 
                 for module_result in module_results.iter() {
                     writer.serialize((
                         &module_result.input,
                         &module_result.id,
                         &module_result.label,
-                        &module_result.decompressed.as_ref().and_then(|d| d.id.as_ref()),
-                        &module_result.decompressed.as_ref().and_then(|d| d.label.as_ref()),
+                        &module_result
+                            .decompressed
+                            .as_ref()
+                            .and_then(|d| d.id.as_ref()),
+                        &module_result
+                            .decompressed
+                            .as_ref()
+                            .and_then(|d| d.label.as_ref()),
                     ))?;
                 }
             }
@@ -119,26 +131,32 @@ impl ModuleResult {
                     let target_file_path = &module_result.input;
 
                     // create yaml map for decompressed field
-                    let mut de_map : HashMap<String, serde_yaml::Value> = HashMap::new();
+                    let mut de_map: HashMap<String, serde_yaml::Value> = HashMap::new();
                     match &module_result.decompressed {
                         Some(decompressed) => {
                             match &decompressed.id {
                                 Some(id) => {
-                                    de_map.insert("id".to_string(), serde_yaml::Value::String(id.clone()));
-                                },
+                                    de_map.insert(
+                                        "id".to_string(),
+                                        serde_yaml::Value::String(id.clone()),
+                                    );
+                                }
                                 None => {
                                     de_map.insert("id".to_string(), serde_yaml::Value::Null);
                                 }
                             }
                             match &decompressed.label {
                                 Some(label) => {
-                                    de_map.insert("label".to_string(), serde_yaml::Value::String(label.clone()));
-                                },
+                                    de_map.insert(
+                                        "label".to_string(),
+                                        serde_yaml::Value::String(label.clone()),
+                                    );
+                                }
                                 None => {
                                     de_map.insert("label".to_string(), serde_yaml::Value::Null);
                                 }
                             }
-                        },
+                        }
                         None => {
                             de_map.insert("id".to_string(), serde_yaml::Value::Null);
                             de_map.insert("label".to_string(), serde_yaml::Value::Null);
@@ -146,19 +164,23 @@ impl ModuleResult {
                     }
 
                     // create yaml map for label and id fields
-                    let mut comp_map : HashMap<String, serde_yaml::Value> = HashMap::new();
+                    let mut comp_map: HashMap<String, serde_yaml::Value> = HashMap::new();
                     match &module_result.id {
                         Some(id) => {
-                            comp_map.insert("id".to_string(), serde_yaml::Value::String(id.clone()));
-                        },
+                            comp_map
+                                .insert("id".to_string(), serde_yaml::Value::String(id.clone()));
+                        }
                         None => {
                             comp_map.insert("id".to_string(), serde_yaml::Value::Null);
                         }
                     }
                     match &module_result.label {
                         Some(label) => {
-                            comp_map.insert("label".to_string(), serde_yaml::Value::String(label.clone()));
-                        },
+                            comp_map.insert(
+                                "label".to_string(),
+                                serde_yaml::Value::String(label.clone()),
+                            );
+                        }
                         None => {
                             comp_map.insert("label".to_string(), serde_yaml::Value::Null);
                         }
@@ -175,11 +197,8 @@ impl ModuleResult {
                     //     }
                     // }
 
-
-                    serialized_map.insert(
-                        target_file_path.clone(),
-                        serde_yaml::to_value(comp_map)?,
-                    );
+                    serialized_map
+                        .insert(target_file_path.clone(), serde_yaml::to_value(comp_map)?);
                 }
 
                 let yaml_str = serde_yaml::to_string(&serialized_map)?;
@@ -193,26 +212,32 @@ impl ModuleResult {
                     let target_file_path = &module_result.input;
 
                     // create json map for decompressed field
-                    let mut de_map : HashMap<String, serde_json::Value> = HashMap::new();
+                    let mut de_map: HashMap<String, serde_json::Value> = HashMap::new();
                     match &module_result.decompressed {
                         Some(decompressed) => {
                             match &decompressed.id {
                                 Some(id) => {
-                                    de_map.insert("id".to_string(), serde_json::Value::String(id.clone()));
-                                },
+                                    de_map.insert(
+                                        "id".to_string(),
+                                        serde_json::Value::String(id.clone()),
+                                    );
+                                }
                                 None => {
                                     de_map.insert("id".to_string(), serde_json::Value::Null);
                                 }
                             }
                             match &decompressed.label {
                                 Some(label) => {
-                                    de_map.insert("label".to_string(), serde_json::Value::String(label.clone()));
-                                },
+                                    de_map.insert(
+                                        "label".to_string(),
+                                        serde_json::Value::String(label.clone()),
+                                    );
+                                }
                                 None => {
                                     de_map.insert("label".to_string(), serde_json::Value::Null);
                                 }
                             }
-                        },
+                        }
                         None => {
                             de_map.insert("id".to_string(), serde_json::Value::Null);
                             de_map.insert("label".to_string(), serde_json::Value::Null);
@@ -220,19 +245,23 @@ impl ModuleResult {
                     }
 
                     // create json map for label and id fields
-                    let mut comp_map : HashMap<String, serde_json::Value> = HashMap::new();
+                    let mut comp_map: HashMap<String, serde_json::Value> = HashMap::new();
                     match &module_result.id {
                         Some(id) => {
-                            comp_map.insert("id".to_string(), serde_json::Value::String(id.clone()));
-                        },
+                            comp_map
+                                .insert("id".to_string(), serde_json::Value::String(id.clone()));
+                        }
                         None => {
                             comp_map.insert("id".to_string(), serde_json::Value::Null);
                         }
                     }
                     match &module_result.label {
                         Some(label) => {
-                            comp_map.insert("label".to_string(), serde_json::Value::String(label.clone()));
-                        },
+                            comp_map.insert(
+                                "label".to_string(),
+                                serde_json::Value::String(label.clone()),
+                            );
+                        }
                         None => {
                             comp_map.insert("label".to_string(), serde_json::Value::Null);
                         }
@@ -249,13 +278,8 @@ impl ModuleResult {
                     //     }
                     // }
 
-
-
-
-                    serialized_map.insert(
-                        target_file_path.clone(),
-                        serde_json::to_value(comp_map)?,
-                    );
+                    serialized_map
+                        .insert(target_file_path.clone(), serde_json::to_value(comp_map)?);
                 }
 
                 let json_str = serde_json::to_string(&serialized_map)?;
@@ -278,8 +302,11 @@ pub struct Config {
 }
 
 pub struct InvokeOptions {
+    /// Read full content of the input or not
     pub tidy: bool,
+    /// Skip decompression of the input or not
     pub no_decompress: bool,
+    /// Number of records to read
     pub num_records: usize,
 }
 
@@ -292,8 +319,6 @@ impl From<&Args> for InvokeOptions {
         }
     }
 }
-
-
 
 pub fn run(config: Config, args: Args) -> Result<()> {
     crate::logger::init_logger(args.verbose, args.quiet);
@@ -323,7 +348,7 @@ pub fn run(config: Config, args: Args) -> Result<()> {
         info!("Processing input: {}", input);
 
         // Check if the input is stdin or path. If path, download the file if it is a url.
-        let (target_source , compressed_format) = match input.parse::<Source>()? {
+        let (target_source, compressed_format) = match input.parse::<Source>()? {
             Source::FilePath(p) => {
                 // Prepare input file path from url or local file path.
                 // Download the file and store it in the specified cache directory if input is url.
@@ -344,23 +369,24 @@ pub fn run(config: Config, args: Args) -> Result<()> {
                     }
                 };
 
-                let (source, compressed_format) = Source::decompress_into_tempfile_from_filepath_if_needed(
-                    &target_file_path,
-                    &invoke_options,
-                    &temp_dir,
-                    cwl_module_exists,
-                )?;
+                let (source, compressed_format) =
+                    Source::decompress_into_tempfile_from_filepath_if_needed(
+                        &target_file_path,
+                        &invoke_options,
+                        &temp_dir,
+                        cwl_module_exists,
+                    )?;
 
                 match source {
-                    Some(source) => {(source, compressed_format)},
-                    None =>          {  (    Source::FilePath(target_file_path), compressed_format)},
+                    Some(source) => (source, compressed_format),
+                    None => (Source::FilePath(target_file_path), compressed_format),
                 }
             }
             Source::Stdin => {
                 info!("Reading from STDIN...");
                 input = "STDIN".to_string();
                 Source::convert_into_tempfile_from_stdin(&invoke_options, &temp_dir)?
-            },
+            }
             Source::TempFile(_) => unreachable!(),
             Source::Memory(_) => unreachable!(),
         };
@@ -370,16 +396,16 @@ pub fn run(config: Config, args: Args) -> Result<()> {
         let compressed_format_edam = ModuleResult::from(&compressed_format);
         // must swap the edam of the module result and the compressed format if decompress has been done.
         match compressed_format {
-            CompressedFormat::None =>{},
-            CompressedFormat::Bgzf => {},
+            CompressedFormat::None => {}
+            CompressedFormat::Bgzf => {}
             _ => {
-                module_result.swap_edam_of_module_result_and_compressed_format(compressed_format_edam);
+                module_result
+                    .swap_edam_of_module_result_and_compressed_format(compressed_format_edam);
             }
         }
 
         module_result.set_input(input.clone());
         module_results.push(module_result);
-
     }
 
     // if args.cache_dir is Some, keep the temporary directory.
@@ -418,24 +444,16 @@ fn run_modules(
     temp_dir: &TempDir,
     invoke_options: &InvokeOptions,
 ) -> Result<ModuleResult> {
-    // Create an input file for CWL modules if there is any CWL module in the config file and input is not stdin.
-    let cwl_input_file_path: Option<NamedTempFile> =
-        // Check whether the input is not stdin
-        if let Source::FilePath(target_file_path) = &target_source {
-            // Check whether CWL modules exist in the config file.
-            if cwl_module_exists(config)? {
-                Some(crate::ext_tools::make_cwl_input_file(
-                    target_file_path.clone(),
-                    temp_dir,
-                )?)
-            } else {
-                None
-            }
-        } 
-        // Not invoking CWL module if the input is stdin, therefore return None here.
-        else {
-            None
-        };
+    // Create an input file for CWL modules if there is any CWL module in the config file
+    let cwl_input_file_path: Option<NamedTempFile> = if cwl_module_exists(config)? {
+        let &target_file_path = &target_source.as_path().unwrap();
+        Some(crate::ext_tools::make_cwl_input_file(
+            target_file_path.to_path_buf(),
+            temp_dir,
+        )?)
+    } else {
+        None
+    };
 
     let module_result = config
         .order
@@ -450,19 +468,13 @@ fn run_modules(
             let result = match module_extension {
                 "" => crate::parser::invoke(module, &target_source, invoke_options),
                 "cwl" => {
-                    // TODO might want to refactor this without using match statement.
                     // CWL module invocation is skipped if the input is not a file path or URL.
-                    match target_source.as_path() {
-                        Some(target_file_path) => {
-                            crate::ext_tools::invoke(
-                            module_path,
-                            target_file_path,
-                            cwl_input_file_path.as_ref().unwrap(),
-                            invoke_options,)
-                        },
-                        None =>  Err(anyhow!("Skipping CWL module invocation. CWL modules can only be invoked with file paths or URLs.")),
-                    }
-
+                    let target_file_path = target_source.as_path().unwrap();
+                    crate::ext_tools::invoke(
+                        module_path,
+                        target_file_path,
+                        cwl_input_file_path.as_ref().unwrap(),
+                        invoke_options,)
                 },
                 _ => Err(anyhow!(
                     "An unsupported file extension '.{}' was specified for the module value in the conf file. Only .cwl is supported for external extension mode.",
@@ -521,15 +533,19 @@ fn cwl_module_exists(config: &Config) -> Result<bool> {
     Ok(false)
 }
 
-fn check_run_condition_cwl_module(inputs: &[String], cwl_module_exists: bool, invoke_options: &InvokeOptions) -> Result<()> {
+fn check_run_condition_cwl_module(
+    inputs: &[String],
+    cwl_module_exists: bool,
+    invoke_options: &InvokeOptions,
+) -> Result<()> {
     // whether stdin is included in the input
     let stdin_exists = inputs.iter().any(|input| input == "-");
 
     /*
-    cwl 
+    cwl
     - filepath
         - plain, --no-decompress
-            - ok    
+            - ok
         - compressed
             - tidy needed
     - stdin

@@ -51,9 +51,13 @@ impl std::fmt::Display for Source {
 }
 
 impl Source {
-    pub fn as_path(&self) -> Option<&PathBuf> {
+    pub fn as_path(&self) -> Option<&Path> {
         match self {
             Self::FilePath(p) => Some(p),
+            Self::TempFile(t) => {
+                let path = t.path();
+                Some(path)
+            }
             _ => None,
         }
     }
@@ -112,7 +116,7 @@ impl Source {
             }
         } else {
             // type was not inferred, return None
-            warn!("Comressed format of the input is not inferrable. Parsing the input as is.");
+            debug!("Comressed format of the input is not inferrable, or the input is not compressed. Parsing the input as is.");
             CompressedFormat::None
         };
 
@@ -205,7 +209,7 @@ impl Source {
             }
         } else {
             // type was not inferred, return None
-            warn!("Comressed format of the input is not inferrable. Parsing the input as is.");
+            debug!("Comressed format of the input is not inferrable, or the input is not compressed. Parsing the input as is.");
             CompressedFormat::None
         };
 
