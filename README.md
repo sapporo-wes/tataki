@@ -44,7 +44,7 @@ In case you want to execute the CWL document with external extension mode, pleas
 docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /tmp:/tmp -v $PWD:$PWD -w $PWD ghcr.io/sapporo-wes/tataki:latest --help
 ```
 
-## Quick Start
+### Quick Start
 
 Determine the file format of a local file. By default, tataki checks the first `--num-records` records of the input:
 
@@ -66,7 +66,7 @@ https://path/to/unknown/file.txt:
     label: FASTQ
 ```
 
-### Usage
+## Usage
 
 Specify the paths of the files as arguments to `tataki`. Local file path, remote URL and standard input (`-`) are supported.
 
@@ -211,14 +211,14 @@ This mode is dependent on Docker, so please ensure that 'docker' is in your PATH
 Here are the steps to execute a CWL document with external extension mode.
 
 1. [Prepare a CWL document](#1-prepare-a-cwl-document)
-2. [Specify the CWL document in the configuration file](#2-add-path-to-configuration-file)
-3. [hoge](#3-execute-tataki-with---tidy-option)
+2. [Add Path to Configuration File](#2-add-path-to-configuration-file)
+3. [Execute Tataki with `--tidy` Option](#3-execute-tataki-with---tidy-option)
 
 #### 1. Prepare a CWL Document
 
 Tataki accepts a CWL document in a specific format. The following is an example of a CWL document that executes `samtools view`.
 
-`edam_Id` and `label` are the two required fields for the CWL document. Both must have `tataki` prefix which is listed in the `$namespaces` section of the document.
+`edam_id` and `label` are the two required fields for the CWL document. Both must have `tataki` prefix which is listed in the `$namespaces` section of the document.
 
 ```cwl
 cwlVersion: v1.2
@@ -229,7 +229,7 @@ requirements:
     dockerPull: quay.io/biocontainers/samtools:1.18--h50ea8bc_1
   InlineJavascriptRequirement: {}
 
-baseCommand: [samtools, head]
+baseCommand: [samtools, view]
 
 successCodes: [0, 139]
 
@@ -267,9 +267,11 @@ And then, execute `tataki` with the `-c|--conf=<FILE>` option. Remember to use t
 tataki <FILE|URL|`-`> -c <CONFIG_FILE> --tidy
 ```
 
+Also, consider using the `--no-decompress` option when you prefer to pass the input without decompression.
+
 ## Potentially Unexpected Behaviors
 
-These are the tricky cases where the result of tataki may not be as expected. Please see #6 for the examples of these cases. If you encounter any unusual behavior like these examples, please consider posting to issue #6.
+These are the tricky cases where the result of tataki may not be as expected. Please see [issue #6](https://github.com/sapporo-wes/tataki/issues/6) for the examples of these cases. If you encounter any unusual behavior like these examples, please consider posting to [issue #6](https://github.com/sapporo-wes/tataki/issues/6).
 
 - Files with only header lines
 
