@@ -32,6 +32,12 @@ chmod +x ./tataki
 ./tataki --help
 ```
 
+You can also install tataki using cargo.
+
+```shell
+cargo install -f --git https://github.com/sapporo-wes/tataki.git
+```
+
 Or, you can run tataki using Docker.
 
 ```shell
@@ -243,7 +249,7 @@ outputs: {}
 
 $namespaces:
   tataki: https://github.com/sapporo-wes/tataki
-  
+
 tataki:edam_id: http://edamontology.org/format_2573
 tataki:label: SAM
 ```
