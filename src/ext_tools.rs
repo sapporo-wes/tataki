@@ -39,9 +39,9 @@ pub fn invoke(
         .with_context(|| format!("The specified path of CWL document '{}' does not exist. Please check the path for typos and try again.", cwl_file_path.display()))?;
 
     // get the EDAM_ID and LABEL from the comment lines in the CWL file.
-    let mut cwl_fields = get_fields_from_cwl_file(&cwl_file_path)?;
-    let mut cwl_edam_info = extract_edam_info_from_fields(&cwl_fields)?;
-    validate_id_and_label(&mut cwl_edam_info, &cwl_file_path)?;
+    let cwl_fields = get_fields_from_cwl_file(&cwl_file_path)?;
+    let cwl_edam_info = extract_edam_info_from_fields(&cwl_fields)?;
+    validate_id_and_label(&cwl_edam_info, &cwl_file_path)?;
 
     // create a docker commandline from the CWL file using cwl-inspector.
     let inspector_process = std::process::Command::new("docker")
@@ -81,7 +81,7 @@ pub fn invoke(
         .ok_or_else(|| anyhow!("Failed to create a docker command from the CWL file."))?;
 
     // remove the "-v" options and split the docker command on the "-v" option.
-    let mut parts_iter = tmp_cwl_docker_command_split.into_iter().peekable();
+    let mut parts_iter = tmp_cwl_docker_command_split.into_iter();
     let cwl_docker_command_name = parts_iter.next().unwrap();
     let mut cwl_docker_args_before_v: Vec<String> = Vec::new();
     let mut cwl_docker_args_after_v: Vec<String> = Vec::new();
@@ -201,7 +201,7 @@ fn get_fields_from_cwl_file(cwl_file_path: &Path) -> Result<CwlFields> {
                 )
             })?;
             let docker_requirement = requirements
-                .get(&"DockerRequirement".to_string())
+                .get("DockerRequirement".to_string())
                 .ok_or_else(|| {
                     anyhow!(
                         "The 'DockerRequirement' field in the CWL file is not found: {}. Docker image must be specified in the CWL file.",
@@ -209,7 +209,7 @@ fn get_fields_from_cwl_file(cwl_file_path: &Path) -> Result<CwlFields> {
                     )
                 })?;
             let docker_pull = docker_requirement
-                .get(&"dockerPull".to_string())
+                .get("dockerPull".to_string())
                 .ok_or_else(|| {
                     anyhow!(
                         "The 'dockerPull' field in the CWL file is not found: {}. Docker image must be specified in the CWL file.",
@@ -249,10 +249,7 @@ fn extract_edam_info_from_fields(cwl_fields: &CwlFields) -> Result<HashMap<Strin
     Ok(extracted_fields)
 }
 
-fn validate_id_and_label(
-    parameters: &mut HashMap<String, String>,
-    cwl_file_path: &Path,
-) -> Result<()> {
+fn validate_id_and_label(parameters: &HashMap<String, String>, cwl_file_path: &Path) -> Result<()> {
     // if both EDAM_ID and LABEL are present, check LABEL are valid.
     if parameters.contains_key(EDAM_ID_KEY) && parameters.contains_key(LABEL_KEY) {
         let id = parameters.get(EDAM_ID_KEY).unwrap();

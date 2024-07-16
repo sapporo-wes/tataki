@@ -18,7 +18,6 @@ pub enum OutputFormat {
     after_help = concat!("Version: v", env!("CARGO_PKG_VERSION")),
     arg_required_else_help = true,
 )]
-
 pub struct Args {
     /// Path to the file, URL, or "-" to read from standard input. Multiple inputs can be specified.
     #[clap(name = "FILE|URL|'-'", required_unless_present = "dry_run")]
@@ -77,7 +76,7 @@ pub struct Args {
 }
 
 impl Args {
-    pub fn get_output_format(&self) -> OutputFormat {
+    pub const fn get_output_format(&self) -> OutputFormat {
         if self.yaml {
             OutputFormat::Yaml
         } else if self.json {

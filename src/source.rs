@@ -90,35 +90,33 @@ impl Source {
 
         // TODO check
         // if not inferrable, then None.
-        let compressed_format: CompressedFormat = if let Some(inferred_type) =
-            infer::get(&buffer[..bytes_read])
-        {
-            let extension = inferred_type.extension();
-            match extension {
-                "gz" => {
-                    // check if the gz file is in BGZF format
-                    if is_gzfile_in_bgzf(&buffer) {
-                        debug!("Provided input is in BGZF format");
-                        CompressedFormat::Bgzf
-                    } else {
-                        debug!("Provided input is in GZ format");
-                        CompressedFormat::GZ
-                    }
-                }
-                "bz2" => {
-                    debug!("Provided input is in BZ2 format");
-                    CompressedFormat::BZ2
-                }
-                _ => {
-                    warn!("Provided input is in compressed format not supported by this tool. Parsing the input as is.");
-                    CompressedFormat::None
+        let compressed_format: CompressedFormat = infer::get(&buffer[..bytes_read]).map_or_else(|| {
+            // type was not inferred, return None
+            debug!("Compressed format of the input is not inferrable, or the input is not compressed. Parsing the input as is.");
+            CompressedFormat::None
+        },
+        |inferred_type| {
+            match inferred_type.extension() {
+            "gz" => {
+                // check if the gz file is in BGZF format
+                if is_gzfile_in_bgzf(&buffer) {
+                    debug!("Provided input is in BGZF format");
+                    CompressedFormat::Bgzf
+                } else {
+                    debug!("Provided input is in GZ format");
+                    CompressedFormat::GZ
                 }
             }
-        } else {
-            // type was not inferred, return None
-            debug!("Comressed format of the input is not inferrable, or the input is not compressed. Parsing the input as is.");
-            CompressedFormat::None
-        };
+            "bz2" => {
+                debug!("Provided input is in BZ2 format");
+                CompressedFormat::BZ2
+            }
+            _ => {
+                warn!("Provided input is in compressed format not supported by this tool. Parsing the input as is.");
+                CompressedFormat::None
+            }
+        }}
+    );
 
         // if input is plain text or in BGZF, we are not going to decompress it
         let mut inferred_reader: Box<dyn Read> = match compressed_format {
@@ -182,11 +180,13 @@ impl Source {
 
         // if not inferrable, then None.
         // TODO refactor into a function
-        let compressed_format: CompressedFormat = if let Some(inferred_type) =
-            infer::get(&buffer[..bytes_read])
-        {
-            let extension = inferred_type.extension();
-            match extension {
+        let compressed_format: CompressedFormat = infer::get(&buffer[..bytes_read]).map_or_else(||
+            {
+            // type was not inferred, return None
+            debug!("Compressed format of the input is not inferrable, or the input is not compressed. Parsing the input as is.");
+            CompressedFormat::None
+        }, |inferred_type| {
+            match inferred_type.extension() {
                 "gz" => {
                     // check if the gz file is in BGZF format
                     if is_gzfile_in_bgzf(&buffer) {
@@ -207,11 +207,7 @@ impl Source {
                     CompressedFormat::None
                 }
             }
-        } else {
-            // type was not inferred, return None
-            debug!("Comressed format of the input is not inferrable, or the input is not compressed. Parsing the input as is.");
-            CompressedFormat::None
-        };
+        });
 
         // use the reader as is if no_decompress is true
         let mut inferred_reader: Box<dyn Read> = if options.no_decompress {
@@ -305,7 +301,7 @@ impl Source {
 }
 
 // check if the gz file is particulary in BGZF format
-fn is_gzfile_in_bgzf(header_buffer: &[u8]) -> bool {
+const fn is_gzfile_in_bgzf(header_buffer: &[u8]) -> bool {
     // check if the header is BGZF
 
     // check if the header is long enough

@@ -23,19 +23,19 @@ pub struct ModuleResult {
 impl From<&CompressedFormat> for ModuleResult {
     fn from(compressed_format: &CompressedFormat) -> Self {
         match compressed_format {
-            CompressedFormat::Bgzf => ModuleResult::with_result(None, None),
-            CompressedFormat::GZ => ModuleResult::with_result(
+            CompressedFormat::Bgzf => Self::with_result(None, None),
+            CompressedFormat::GZ => Self::with_result(
                 Some("GZIP format".to_string()),
                 Some("http://edamontology.org/format_3989".to_string()),
             ),
-            CompressedFormat::BZ2 => ModuleResult::with_result(None, None),
-            CompressedFormat::None => ModuleResult::with_result(None, None),
+            CompressedFormat::BZ2 => Self::with_result(None, None),
+            CompressedFormat::None => Self::with_result(None, None),
         }
     }
 }
 
 impl ModuleResult {
-    pub fn with_result(label: Option<String>, id: Option<String>) -> Self {
+    pub const fn with_result(label: Option<String>, id: Option<String>) -> Self {
         Self {
             input: String::new(),
             is_ok: true,
@@ -46,15 +46,15 @@ impl ModuleResult {
         }
     }
 
-    pub fn label(&self) -> Option<&String> {
+    pub const fn label(&self) -> Option<&String> {
         self.label.as_ref()
     }
 
-    pub fn id(&self) -> Option<&String> {
+    pub const fn id(&self) -> Option<&String> {
         self.id.as_ref()
     }
 
-    pub fn error_message(&self) -> Option<&String> {
+    pub const fn error_message(&self) -> Option<&String> {
         self.error_message.as_ref()
     }
 
@@ -85,7 +85,7 @@ impl ModuleResult {
     }
 
     pub fn create_module_results_string(
-        module_results: &[ModuleResult],
+        module_results: &[Self],
         format: OutputFormat,
     ) -> Result<String> {
         fn csv_serialize(module_results: &[ModuleResult], delimiter: u8) -> Result<String> {
@@ -491,7 +491,7 @@ fn run_modules(
                         debug!(
                             "Module \"{}\" failed. Reason:\n{}",
                             module,
-                            module_result.error_message.unwrap_or("".to_string())
+                            module_result.error_message.unwrap_or_else(|| "".to_string())
                         );
                         None
                     }

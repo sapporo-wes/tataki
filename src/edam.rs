@@ -50,16 +50,10 @@ impl EdamMap {
     pub fn correspondence_check_id_and_label(&self, id: &str, label: &str) -> Result<bool> {
         let label_from_bimap = self.bimap_id_label.get_by_left(id);
 
-        match label_from_bimap {
-            Some(label_from_bimap) => {
-                if label_from_bimap == label {
-                    Ok(true)
-                } else {
-                    Ok(false)
-                }
-            }
-            None => Ok(false),
-        }
+        label_from_bimap.map_or_else(
+            || Ok(false),
+            |label_from_bimap| Ok(label_from_bimap == label),
+        )
     }
 }
 
