@@ -1,28 +1,20 @@
-# awesome-bioinformatics-file-spec [![Awesome](https://awesome.re/badge.svg)](https://awesome.re)
+# Awesome Bioinformatics File Spec [![Awesome](https://awesome.re/badge.svg)](https://awesome.re)
 
 > A short list of file format specs used within bioinformatics.
 
-
 ## Contents
 
-- [Section](#section)
-- [Another Section](#another-section)
+- [Formal Specs](#formal-specs)
+- [De Facto Specs](#de-facto-specs)
 
-
-## Section
+## Formal Specs
 
 About this section. Optional. Keep this short and focus on the list.
 
-- [List item](http://example.com)
-- [List item](http://example.com)
+- [SAM](https://samtools.github.io/hts-specs/SAMv1.pdf)
+- [BAM](https://samtools.github.io/hts-specs/SAMv1.pdf)
 
-
-## Another Section
-
-### Subsection
-
-- [List item](http://example.com)
-- [List item](http://example.com)
+## De Facto Specs
 
 
 ## Contribute
