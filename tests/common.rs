@@ -35,3 +35,13 @@ where
 
     Ok(format!("{:x}", result))
 }
+
+// check for the existence of a cache_dir directory and create it if it does not exist
+pub fn check_and_create_cache_dir() -> io::Result<()> {
+    let cache_dir_path = Path::new("tests/cache_dir");
+    if !cache_dir_path.exists() {
+        std::fs::create_dir_all(cache_dir_path)?;
+    }
+
+    Ok(())
+}

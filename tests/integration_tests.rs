@@ -3,7 +3,7 @@ mod common;
 use std::fs;
 use std::path::Path;
 
-use common::{calculate_checksum, tataki};
+use common::{calculate_checksum, check_and_create_cache_dir, tataki};
 
 /*
 test cases:
@@ -41,6 +41,8 @@ new test cases involving new features:
 #[test]
 // 1. default
 fn output_in_csv() {
+    check_and_create_cache_dir().expect("Failed to create the cache directory");
+
     let out = tataki(&["./inputs/toy.sam", "./inputs/toy.fa"], &[]);
 
     let stdout = out.stdout;
@@ -65,6 +67,8 @@ fn output_in_csv() {
 #[test]
 // 2. -f yaml
 fn output_in_yaml() {
+    check_and_create_cache_dir().expect("Failed to create the cache directory");
+
     let out = tataki(&["./inputs/toy.sam", "./inputs/toy.fa"], &["-f", "yaml"]);
 
     let stdout = out.stdout;
@@ -86,6 +90,8 @@ fn output_in_yaml() {
 #[test]
 // 3. -f json --cache-dir
 fn output_in_json_and_can_keep_cache() {
+    check_and_create_cache_dir().expect("Failed to create the cache directory");
+
     let out = tataki(
         &[
             "./inputs/toy.sam",
@@ -135,6 +141,8 @@ fn output_in_json_and_can_keep_cache() {
 #[test]
 // 4. -o file
 fn can_output_to_file() {
+    check_and_create_cache_dir().expect("Failed to create the cache directory");
+
     let _ = tataki(
         &["./inputs/toy.sam", "./inputs/toy.fa"],
         &["-o", "./cache_dir/output.csv"],
@@ -156,6 +164,8 @@ fn can_output_to_file() {
 // 5. -c conf
 // Check if the output becomes null when a conf without sam and fasta is specified.
 fn can_use_config_file() {
+    check_and_create_cache_dir().expect("Failed to create the cache directory");
+
     let out = tataki(
         &["./inputs/toy.sam", "./inputs/toy.fa"],
         &["-c", "./conf/module_order_test.conf"],
@@ -183,6 +193,8 @@ fn can_use_config_file() {
 #[test]
 // 6. --dry-run
 fn can_dry_run() {
+    check_and_create_cache_dir().expect("Failed to create the cache directory");
+
     let out = tataki(&["./inputs/toy.sam", "./inputs/toy.fa"], &["--dry-run"]);
 
     let stdout = out.stdout;
@@ -204,6 +216,8 @@ fn can_dry_run() {
 #[test]
 // 7. --quiet
 fn can_be_quiet() {
+    check_and_create_cache_dir().expect("Failed to create the cache directory");
+
     let out = tataki(&["./inputs/toy.sam", "./inputs/toy.fa"], &["--quiet"]);
 
     let stderr = out.stderr;
@@ -214,6 +228,8 @@ fn can_be_quiet() {
 #[test]
 // 8. --verbose
 fn can_be_verbose() {
+    check_and_create_cache_dir().expect("Failed to create the cache directory");
+
     let out = tataki(&["./inputs/toy.sam", "./inputs/toy.fa"], &["--verbose"]);
 
     let stderr = out.stderr;
@@ -224,6 +240,8 @@ fn can_be_verbose() {
 #[test]
 // 9. -c cwl.conf
 fn can_run_cwl() {
+    check_and_create_cache_dir().expect("Failed to create the cache directory");
+
     let out = tataki(
         &["./inputs/toy.py", "./inputs/toy.fa"],
         &["-c", "./conf/run_cwl_test.conf"],
@@ -252,6 +270,8 @@ fn can_run_cwl() {
 // 10. --num-records <LINES>
 // Check if tataki only reads a single records. The second line of the input file is in abnormal format. If tataki reads more than one record, this assert fails.
 fn can_limit_the_number_of_output_records() {
+    check_and_create_cache_dir().expect("Failed to create the cache directory");
+
     let out = tataki(&["./inputs/toy_invalid_flag.sam"], &["--num-records", "1"]);
 
     let stdout = out.stdout;
@@ -277,6 +297,8 @@ fn can_limit_the_number_of_output_records() {
 // 11. --tidy
 // Check if tataki attempt to read the whole lines of the input file and fail when parsing the line right after `--num-records` lines.
 fn can_read_entirety_of_input_file() {
+    check_and_create_cache_dir().expect("Failed to create the cache directory");
+
     let out = tataki(&["./inputs/toy.sam", "./inputs/toy.fa"], &["--tidy"]);
 
     let stdout = out.stdout;
