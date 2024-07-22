@@ -20,7 +20,7 @@ impl Parser for Template {
         let reader = std::io::BufReader::new(file);
 
         for (count, line) in reader.lines().enumerate() {
-            let _ = line?;
+            let _line = line?;
 
             // Do something with the line here
 
