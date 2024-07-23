@@ -7,7 +7,7 @@ pub struct OnetimeRewindableReader<R: Read> {
 }
 
 impl<R: Read> OnetimeRewindableReader<R> {
-    pub fn new(inner: R) -> Self {
+    pub const fn new(inner: R) -> Self {
         Self {
             inner,
             buffer: None,
