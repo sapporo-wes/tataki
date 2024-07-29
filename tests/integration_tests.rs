@@ -240,12 +240,6 @@ fn can_be_verbose() {
 #[test]
 // 9. -c cwl.conf
 fn can_run_cwl() {
-    // TEMPORARY: skip this test on M1 Mac due (issue #9)
-    // This will be removed when tataki supports M1 Mac.
-    if is_running_on_m1_mac() {
-        return;
-    }
-
     check_and_create_cache_dir().expect("Failed to create the cache directory");
 
     let out = tataki(
