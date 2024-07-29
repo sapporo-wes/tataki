@@ -3,7 +3,7 @@ mod common;
 use std::fs;
 use std::path::Path;
 
-use common::{calculate_checksum, check_and_create_cache_dir, tataki};
+use common::{calculate_checksum, check_and_create_cache_dir, is_running_on_m1_mac, tataki};
 
 /*
 test cases:
@@ -240,6 +240,12 @@ fn can_be_verbose() {
 #[test]
 // 9. -c cwl.conf
 fn can_run_cwl() {
+    // TEMPORARY: skip this test on M1 Mac due (issue #9)
+    // This will be removed when tataki supports M1 Mac.
+    if is_running_on_m1_mac() {
+        return;
+    }
+
     check_and_create_cache_dir().expect("Failed to create the cache directory");
 
     let out = tataki(

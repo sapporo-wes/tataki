@@ -45,3 +45,10 @@ pub fn check_and_create_cache_dir() -> io::Result<()> {
 
     Ok(())
 }
+
+// whether the current environment is M1 Mac
+pub fn is_running_on_m1_mac() -> bool {
+    let os = std::env::consts::OS;
+    let arch = std::env::consts::ARCH;
+    os == "macos" && arch == "aarch64"
+}
