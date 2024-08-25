@@ -7,6 +7,7 @@ use tempfile::{NamedTempFile, TempDir};
 use url::Url;
 
 use crate::args::{Args, OutputFormat};
+use crate::ext_tools::{create_dummy_docker_executable, ensure_docker_presence};
 use crate::source::{CompressedFormat, Source};
 
 // Struct to store the result of Parser invocation and ExtTools invocation.
@@ -455,6 +456,13 @@ fn run_modules(
         None
     };
 
+    // create a dummy Docker executable just for cwl-inspecter to work properly in Docker container only if there are one or more CWL module in the config file
+    let dummy_docker_path = if cwl_module_exists(config)? {
+        Some(create_dummy_docker_executable(temp_dir)?)
+    } else {
+        None
+    };
+
     let module_result = config
         .order
         .iter()
@@ -474,6 +482,7 @@ fn run_modules(
                         module_path,
                         target_file_path,
                         cwl_input_file_path.as_ref().unwrap(),
+                        dummy_docker_path.as_ref().unwrap(),
                         invoke_options,)
                 },
                 _ => Err(anyhow!(
@@ -552,8 +561,19 @@ fn check_run_condition_cwl_module(
         - tidy needed
      */
 
-    if cwl_module_exists && stdin_exists && !invoke_options.tidy {
-        bail!("The `--tidy` option is required when reading from STDIN and invoking CWL modules.");
+    if cwl_module_exists {
+        if stdin_exists && !invoke_options.tidy {
+            bail!(
+                "The `--tidy` option is required when reading from STDIN and invoking CWL modules."
+            );
+        }
+
+        // check for existence of docker binary if a CWL module is specified
+        let docker_path = ensure_docker_presence()?;
+        debug!(
+            "The path of the docker command in your environment: {:?}.",
+            docker_path
+        );
     }
 
     Ok(())
