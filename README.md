@@ -103,23 +103,31 @@ Options:
   -h, --help                       Print help
   -V, --version                    Print version
 
-Version: v0.4.0
+Version: v0.4.1
 ```
 
 ## Detailed Usage
 
 Table of Contents
 
-- [Reading from Standard Input](#reading-from-standard-input)
-- [Changing the Number of Records to Read](#changing-the-number-of-records-to-read)
-  - [Reading the Whole Lines from the Input](#reading-the-whole-lines-from-the-input)
-- [Handling Compressed Files](#handling-compressed-files)
-  - [BGZF Compressed Files](#bgzf-compressed-files)
-- [Determining Formats in Your Preferred Order](#determining-formats-in-your-preferred-order)
-- [Executing a CWL Document with External Extension Mode](#executing-a-cwl-document-with-external-extension-mode)
-  - [1. Prepare a CWL Document](#1-prepare-a-cwl-document)
-  - [2. Add Path to Configuration File](#2-add-path-to-configuration-file)
-  - [3. Execute Tataki with `--tidy` Option](#3-execute-tataki-with---tidy-option)
+- [Tataki](#tataki)
+  - [Installation](#installation)
+    - [Quick Start](#quick-start)
+  - [Usage](#usage)
+  - [Detailed Usage](#detailed-usage)
+    - [Reading from Standard Input](#reading-from-standard-input)
+    - [Changing the Number of Records to Read](#changing-the-number-of-records-to-read)
+      - [Reading the Whole Lines from the Input](#reading-the-whole-lines-from-the-input)
+    - [Handling Compressed Files](#handling-compressed-files)
+      - [BGZF Compressed Files](#bgzf-compressed-files)
+    - [Determining Formats in Your Preferred Order](#determining-formats-in-your-preferred-order)
+    - [Executing a CWL Document with External Extension Mode](#executing-a-cwl-document-with-external-extension-mode)
+      - [1. Prepare a CWL Document](#1-prepare-a-cwl-document)
+      - [2. Add Path to Configuration File](#2-add-path-to-configuration-file)
+      - [3. Execute Tataki with `--tidy` Option](#3-execute-tataki-with---tidy-option)
+  - [Potentially Unexpected Behaviors](#potentially-unexpected-behaviors)
+  - [Contributing](#contributing)
+  - [License](#license)
 
 ### Reading from Standard Input
 
