@@ -47,6 +47,7 @@ pub fn check_and_create_cache_dir() -> io::Result<()> {
 }
 
 // whether the current environment is M1 Mac
+#[allow(dead_code)]
 pub fn is_running_on_m1_mac() -> bool {
     let os = std::env::consts::OS;
     let arch = std::env::consts::ARCH;
