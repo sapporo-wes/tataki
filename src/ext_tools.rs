@@ -2,7 +2,9 @@ use anyhow::{anyhow, bail, Context, Result};
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fs;
 use std::io::Write;
+use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use tempfile::{Builder, NamedTempFile, TempDir};
 
@@ -17,15 +19,10 @@ pub fn invoke(
     cwl_file_path: &Path,
     target_file_path: &Path,
     cwl_input_file_path: &NamedTempFile,
+    dummy_docker_path: &NamedTempFile,
     _options: &InvokeOptions,
 ) -> Result<ModuleResult> {
     info!("Invoking ext_tools {}", cwl_file_path.display());
-
-    let docker_path = docker_path()?;
-    debug!(
-        "The path of the docker command in your environment: {:?}.",
-        docker_path
-    );
 
     // make sure that the both paths are canonicalized.
     let target_file_path = target_file_path.canonicalize().with_context(|| {
@@ -50,7 +47,7 @@ pub fn invoke(
             "--rm",
             "-i",
             "-v",
-            &format!("{}:/usr/bin/docker:ro", docker_path.to_str().unwrap()),
+            &format!("{}:/usr/bin/docker:ro", dummy_docker_path.path().display()),
             "-v",
             &format!(
                 "{}:/workdir/input_file.yaml:ro",
@@ -141,7 +138,8 @@ pub fn invoke(
     Ok(module_result)
 }
 
-fn docker_path() -> Result<PathBuf> {
+// check whether `which docker` succeeds or not to see the docker binary is in the PATH.
+pub fn ensure_docker_presence() -> Result<PathBuf> {
     let process = std::process::Command::new("which")
         .arg("docker")
         .stdout(std::process::Stdio::piped())
@@ -152,8 +150,22 @@ fn docker_path() -> Result<PathBuf> {
         let path = String::from_utf8(process.stdout)?;
         Ok(PathBuf::from(path.trim()))
     } else {
-        bail!("Please make sure that the docker command is present in your PATH");
+        bail!("Please make sure that the docker command is present in your PATH when invoking CWL modules.");
     }
+}
+
+// create a dummy Docker executable
+// - create a empty file in the temporary directory.
+// - grant execution permission to the file.
+// - return the file as NamedTempFile.
+pub fn create_dummy_docker_executable(temp_dir: &TempDir) -> Result<NamedTempFile> {
+    let read_execution_permission = std::fs::Permissions::from_mode(0o500);
+    let dummy_docker_file = Builder::new()
+        .prefix("dummy_docker_")
+        .permissions(read_execution_permission)
+        .tempfile_in(temp_dir)?;
+
+    Ok(dummy_docker_file)
 }
 
 #[derive(Deserialize, Debug)]
