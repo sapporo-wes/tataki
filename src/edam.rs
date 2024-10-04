@@ -40,6 +40,7 @@ impl EdamMap {
         }
     }
 
+    #[allow(dead_code)]
     pub fn get_id_from_label(&self, label: &str) -> Option<String> {
         let id = self.bimap_id_label.get_by_right(label);
 

@@ -3,7 +3,7 @@ mod common;
 use std::fs;
 use std::path::Path;
 
-use common::{calculate_checksum, check_and_create_cache_dir, is_running_on_m1_mac, tataki};
+use common::{calculate_checksum, check_and_create_cache_dir, tataki};
 
 /*
 test cases:

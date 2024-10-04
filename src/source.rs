@@ -19,6 +19,7 @@ pub enum Source {
     FilePath(PathBuf),
     TempFile(NamedTempFile),
     Stdin,
+    #[allow(dead_code)]
     Memory(Vec<u8>),
 }
 
@@ -160,6 +161,7 @@ impl Source {
 
     // if the input from stdin is compressed and no_decompress is false, decompress the input, save it into tempfile and return Source::FilePath(tempfile path)
     // if the input from stdin is either not compressed or no_decompress is true, save it into tempfile and return Source::FilePath(tempfile path)
+    #[allow(clippy::significant_drop_tightening)]
     pub fn convert_into_tempfile_from_stdin(
         options: &InvokeOptions,
         temp_dir: &TempDir,
