@@ -10,7 +10,6 @@ on:
       - 'src/**'
       - 'tests/**'
       - 'Cargo.**'
-      - '.github/**'
   pull_request:
     branches:
       - main
