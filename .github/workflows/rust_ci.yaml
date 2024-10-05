@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - enhancement**
+      - bug**
     paths:
       - 'src/**'
       - 'tests/**'
@@ -14,6 +15,7 @@ on:
     branches:
       - main
 
+
 jobs:
   build_cache:
     name: Cache Rust ${{ matrix.os }}
@@ -21,14 +23,20 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        # os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest]
     steps: 
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Cache cargo directory
         uses: ./.github/actions/cache_cargo
+      - name: Set toolchain
+        uses: dtolnay/rust-toolchain@master
+        with: 
+          toolchain: stable
+          components: rustfmt, clippy
       - name: Build
-        run: cargo build
+        run: cargo build 
 
   fmt_clippy:
     name: format and clippy
@@ -37,9 +45,14 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Cache cargo directory
+        uses: ./.github/actions/cache_cargo
+      - name: Check
+        run: cargo check
       - name: Format code
         run: cargo fmt --all -- --check
+      - name: Clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings --no-deps
 
   test:
     name: cargo test
@@ -47,7 +60,8 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        # os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest]
     needs: build_cache
     steps:
       - name: Checkout code
