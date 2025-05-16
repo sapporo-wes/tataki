@@ -19,12 +19,13 @@ use crate::module::{InvokeOptions, ModuleResult};
 use crate::source::Source;
 
 pub trait Parser {
-    /// Determine if the provided file is in a format that this parser can interpret.
-    /// If the parser can successfully interpret the file, return `Ok(ModuleResult)`.
-    /// If it does not, return `Err(anyhow::Error)`, including an error message that specifies the reasons why the parser cannot process the file.
-    /// To construct `ModuleResult`, utilize `ModuleResult::with_result()` which requires `label` and `id` as parameters.
-    /// `id`: EDAM Class ID
-    /// `label`: EDAM Preferred Label
+    /// Determines whether the provided file is in a format that this parser can interpret.
+    /// If the parser successfully interprets the file, it returns `Ok(ModuleResult)`.
+    /// Otherwise, it returns `Err(anyhow::Error)`, with an error message explaining why the parser cannot process the file.
+    /// To construct a `ModuleResult`, use `ModuleResult::with_result()`, which requires `label` and `id` as parameters.
+    ///
+    /// - `id`: EDAM Class ID
+    /// - `label`: EDAM Preferred Label
     fn determine_from_path(
         &self,
         input_path: &Path,
@@ -89,7 +90,8 @@ mod tests {
     use super::*;
     use std::path::PathBuf;
 
-    // Test the result of invoking the parser when determine is successful.
+    /// Tests the result of invoking the parser when the `determine` (in this case `determine_from_path`) function successfully identifies the file format.
+    /// This function verifies that the returned `ModuleResult` contains the expected `label` and `id`.`
     fn invoke_wrapper_determine_pass(
         module_name: &str,
         target_file_path: &Path,
@@ -108,7 +110,8 @@ mod tests {
         assert_eq!(result.id(), Some(&id.to_string()));
     }
 
-    // Test the result of invoking the parser when determine is unsuccessful.
+    /// Tests the result of invoking the parser when the `determine` (in this case `determine_from_path`) function fails to identify the file format.
+    /// This function verifies that the returned `ModuleResult` contains the expected error message.
     fn invoke_wrapper_determine_fail(
         module_name: &str,
         target_file_path: &Path,
