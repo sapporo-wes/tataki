@@ -92,3 +92,6 @@ target/
 
 # Ignore the cache directory for tests
 tests/cache_dir/
+
+# memo files
+**/memo.txt
