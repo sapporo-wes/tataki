@@ -103,7 +103,7 @@ Options:
   -h, --help                       Print help
   -V, --version                    Print version
 
-Version: v0.4.1
+Version: v0.4.2
 ```
 
 ## Detailed Usage
