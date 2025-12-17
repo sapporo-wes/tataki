@@ -23,13 +23,13 @@ jobs:
             target: aarch64-unknown-linux-musl
     steps:
       - name: "Checkout"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
       - name: "Cache builder image"
         id: cache-builder-image
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: musl-builder-image-${{ matrix.name }}
           key: musl-builder-image-${{ matrix.name }}
@@ -44,7 +44,7 @@ jobs:
         run: docker load -i musl-builder-image-${{ matrix.name }}
 
       - name: "Cache Rust"
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/bin/
@@ -58,7 +58,7 @@ jobs:
         run: docker run --rm -u root -v "$(pwd)":/home/rust/src messense/rust-musl-cross:${{ matrix.tag }} cargo build --release
 
       - name: "Upload binary"
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: tataki-${{ matrix.name }}
           path: target/${{ matrix.target }}/release/tataki
@@ -75,7 +75,7 @@ jobs:
           - name: aarch64
     steps:
       - name: "Download tataki binary"
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: tataki-${{ matrix.name }}
       - name: Upload tataki binary
@@ -90,7 +90,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 1
       - name: Set up QEMU
