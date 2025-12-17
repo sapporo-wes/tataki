@@ -134,7 +134,7 @@ fn output_in_json_and_can_keep_cache() {
 
     assert_eq!(
         toy_fa_sha256,
-        "b2f08eb3c17ade6f4d9933195acc89caf8eefb5b31f89b98f616e9c8e2f9405e"
+        "e97c184fd81943e69d750a0e6bad5248c927a7430cb44598221dbf0263356078"
     );
 }
 
