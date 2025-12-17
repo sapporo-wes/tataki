@@ -47,7 +47,7 @@ impl<R: Read> Seek for OnetimeRewindableReader<R> {
         match pos {
             SeekFrom::Start(0) => {
                 if self.has_rewound {
-                    Err(io::Error::new(io::ErrorKind::Other, "Can only rewind once"))
+                    Err(io::Error::other("Can only rewind once"))
                 } else {
                     if let Some(ref mut buffer) = self.buffer {
                         buffer.seek(SeekFrom::Start(0))?;

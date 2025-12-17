@@ -41,7 +41,7 @@ pub fn download_from_url(url: &Url, temp_dir: &TempDir) -> Result<PathBuf> {
     // write the content of the response to a temporary file
     let file_name = &url
         .path_segments()
-        .and_then(|segments| segments.last())
+        .and_then(|mut segments| segments.next_back())
         .unwrap_or("downloaded_file");
     let file_path = temp_dir.path().join(file_name);
     let mut file = File::create(&file_path)?;

@@ -19,12 +19,13 @@ use crate::module::{InvokeOptions, ModuleResult};
 use crate::source::Source;
 
 pub trait Parser {
-    /// Determine if the provided file is in a format that this parser can interpret.
-    /// If the parser can successfully interpret the file, return `Ok(ModuleResult)`.
-    /// If it does not, return `Err(anyhow::Error)`, including an error message that specifies the reasons why the parser cannot process the file.
-    /// To construct `ModuleResult`, utilize `ModuleResult::with_result()` which requires `label` and `id` as parameters.
-    /// `id`: EDAM Class ID
-    /// `label`: EDAM Preferred Label
+    /// Determines whether the provided file is in a format that this parser can interpret.
+    /// If the parser successfully interprets the file, it returns `Ok(ModuleResult)`.
+    /// Otherwise, it returns `Err(anyhow::Error)`, with an error message explaining why the parser cannot process the file.
+    /// To construct a `ModuleResult`, use `ModuleResult::with_result()`, which requires `label` and `id` as parameters.
+    ///
+    /// - `id`: EDAM Class ID
+    /// - `label`: EDAM Preferred Label
     fn determine_from_path(
         &self,
         input_path: &Path,
@@ -89,7 +90,8 @@ mod tests {
     use super::*;
     use std::path::PathBuf;
 
-    // Test the result of invoking the parser when determine is successful.
+    /// Tests the result of invoking the parser when the `determine` (in this case `determine_from_path`) function successfully identifies the file format.
+    /// This function verifies that the returned `ModuleResult` contains the expected `label` and `id`.`
     fn invoke_wrapper_determine_pass(
         module_name: &str,
         target_file_path: &Path,
@@ -108,7 +110,8 @@ mod tests {
         assert_eq!(result.id(), Some(&id.to_string()));
     }
 
-    // Test the result of invoking the parser when determine is unsuccessful.
+    /// Tests the result of invoking the parser when the `determine` (in this case `determine_from_path`) function fails to identify the file format.
+    /// This function verifies that the returned `ModuleResult` contains the expected error message.
     fn invoke_wrapper_determine_fail(
         module_name: &str,
         target_file_path: &Path,
@@ -141,18 +144,64 @@ mod tests {
     }
 
     #[test]
-    fn test_sam_invoke() {
-        let sam_input_path = PathBuf::from("./tests/inputs/toy.sam");
+    fn test_bam_invoke() {
+        let bam_input_path = PathBuf::from("./tests/inputs/toy.bam");
 
         invoke_wrapper_determine_pass(
-            "sam",
-            &sam_input_path,
-            "SAM",
-            "http://edamontology.org/format_2573",
+            "bam",
+            &bam_input_path,
+            "BAM",
+            "http://edamontology.org/format_2572",
         );
 
-        let not_sam_input_path = PathBuf::from("./tests/inputs/toy.fa");
-        invoke_wrapper_determine_fail("sam", &not_sam_input_path, "invalid flags");
+        let not_bam_input_path = PathBuf::from("./tests/inputs/toy.sam");
+        invoke_wrapper_determine_fail("bam", &not_bam_input_path, "failed to fill whole buffer");
+    }
+
+    #[test]
+    fn test_bcf_invoke() {
+        let bcf_input_path = PathBuf::from("./tests/inputs/toy.bcf");
+
+        invoke_wrapper_determine_pass(
+            "bcf",
+            &bcf_input_path,
+            "BCF",
+            "http://edamontology.org/format_3020",
+        );
+
+        let not_bcf_input_path = PathBuf::from("./tests/inputs/toy.vcf");
+        invoke_wrapper_determine_fail("bcf", &not_bcf_input_path, "failed to fill whole buffer");
+    }
+
+    #[test]
+    fn test_bed_invoke() {
+        let bed_input_path = PathBuf::from("./tests/inputs/toy.bed");
+
+        invoke_wrapper_determine_pass(
+            "bed",
+            &bed_input_path,
+            "BED",
+            "http://edamontology.org/format_3003",
+        );
+
+        let not_bed_input_path = PathBuf::from("./tests/inputs/toy.fa");
+        invoke_wrapper_determine_fail("bed", &not_bed_input_path, "missing start position");
+    }
+
+    #[test]
+    fn test_cram_invoke() {
+        let cram_input_path = PathBuf::from("./tests/inputs/toy.cram");
+
+        // TODO: review this later. currently the assert fails due to the CRAM file not being valid.
+        invoke_wrapper_determine_pass(
+            "cram",
+            &cram_input_path,
+            "CRAM",
+            "http://edamontology.org/format_3462",
+        );
+
+        let not_cram_input_path = PathBuf::from("./tests/inputs/toy.bam");
+        invoke_wrapper_determine_fail("cram", &not_cram_input_path, "invalid CRAM header");
     }
 
     #[test]
@@ -171,17 +220,77 @@ mod tests {
     }
 
     #[test]
-    fn test_bam_invoke() {
-        let bam_input_path = PathBuf::from("./tests/inputs/toy.bam");
+    fn test_fastq_invoke() {
+        let fastq_input_path = PathBuf::from("./tests/inputs/toy.fq");
 
         invoke_wrapper_determine_pass(
-            "bam",
-            &bam_input_path,
-            "BAM",
-            "http://edamontology.org/format_2572",
+            "fastq",
+            &fastq_input_path,
+            "FASTQ",
+            "http://edamontology.org/format_1930",
         );
 
-        let not_bam_input_path = PathBuf::from("./tests/inputs/toy.sam");
-        invoke_wrapper_determine_fail("bam", &not_bam_input_path, "failed to fill whole buffer");
+        let not_fastq_input_path = PathBuf::from("./tests/inputs/toy.fa");
+        invoke_wrapper_determine_fail("fastq", &not_fastq_input_path, "invalid name prefix");
+    }
+
+    #[test]
+    fn test_gff3_invoke() {
+        let gff3_input_path = PathBuf::from("./tests/inputs/toy.gff3");
+
+        invoke_wrapper_determine_pass(
+            "gff3",
+            &gff3_input_path,
+            "GFF3",
+            "http://edamontology.org/format_1975",
+        );
+
+        let not_gff3_input_path = PathBuf::from("./tests/inputs/toy.gtf");
+        invoke_wrapper_determine_fail("gff3", &not_gff3_input_path, "invalid record");
+    }
+
+    #[test]
+    fn test_gtf_invoke() {
+        let gtf_input_path = PathBuf::from("./tests/inputs/toy.gtf");
+
+        invoke_wrapper_determine_pass(
+            "gtf",
+            &gtf_input_path,
+            "GTF",
+            "http://edamontology.org/format_2306",
+        );
+
+        let not_gtf_input_path = PathBuf::from("./tests/inputs/toy.gff3");
+        invoke_wrapper_determine_fail("gtf", &not_gtf_input_path, "invalid record");
+    }
+
+    #[test]
+    fn test_sam_invoke() {
+        let sam_input_path = PathBuf::from("./tests/inputs/toy.sam");
+
+        invoke_wrapper_determine_pass(
+            "sam",
+            &sam_input_path,
+            "SAM",
+            "http://edamontology.org/format_2573",
+        );
+
+        let not_sam_input_path = PathBuf::from("./tests/inputs/toy.fa");
+        invoke_wrapper_determine_fail("sam", &not_sam_input_path, "invalid flags");
+    }
+
+    #[test]
+    fn test_vcf_invoke() {
+        let vcf_input_path = PathBuf::from("./tests/inputs/toy.vcf");
+
+        invoke_wrapper_determine_pass(
+            "vcf",
+            &vcf_input_path,
+            "VCF",
+            "http://edamontology.org/format_3016",
+        );
+
+        let not_vcf_input_path = PathBuf::from("./tests/inputs/toy.bed");
+        invoke_wrapper_determine_fail("vcf", &not_vcf_input_path, "empty input");
     }
 }

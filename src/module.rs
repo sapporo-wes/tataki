@@ -59,7 +59,7 @@ impl ModuleResult {
         self.error_message.as_ref()
     }
 
-    pub fn set_is_ok(&mut self, is_ok: bool) {
+    pub const fn set_is_ok(&mut self, is_ok: bool) {
         self.is_ok = is_ok;
     }
 
@@ -412,10 +412,7 @@ pub fn run(config: Config, args: Args) -> Result<()> {
     // if args.cache_dir is Some, keep the temporary directory.
     // Otherwise, delete the temporary directory.
     if args.cache_dir.is_some() {
-        info!(
-            "Keeping temporary directory: {}",
-            temp_dir.into_path().display()
-        );
+        info!("Keeping temporary directory: {}", temp_dir.keep().display());
     } else {
         info!(
             "Deleting temporary directory: {}",

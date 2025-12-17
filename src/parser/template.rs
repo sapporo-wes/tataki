@@ -4,6 +4,7 @@ use std::path::Path;
 use crate::module::{InvokeOptions, ModuleResult};
 use crate::parser::Parser;
 
+#[allow(unused)]
 pub struct Template;
 
 impl Parser for Template {
