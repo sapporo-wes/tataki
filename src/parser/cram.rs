@@ -9,7 +9,7 @@ impl Parser for Cram {
     fn determine_from_path(
         &self,
         input_path: &Path,
-        options: &InvokeOptions,
+        #[allow(unused_variables)] options: &InvokeOptions,
     ) -> anyhow::Result<ModuleResult> {
         let mut reader = noodles::cram::reader::Builder::default().build_from_path(input_path)?;
 

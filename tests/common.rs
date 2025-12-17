@@ -4,13 +4,16 @@ use std::fs::File;
 use std::io::{self, Read};
 use std::path::Path;
 
+use assert_cmd::cargo;
+
 pub struct Out {
     pub stdout: String,
     pub stderr: String,
 }
 
 pub fn tataki(targets: &[&str], options: &[&str]) -> Out {
-    let mut cmd = assert_cmd::Command::cargo_bin("tataki").expect("Failed to find 'tataki' binary");
+    let mut cmd = cargo::cargo_bin_cmd!();
+
     cmd.current_dir("tests/");
     let hoge = cmd.args(targets).args(options).assert().success();
 
