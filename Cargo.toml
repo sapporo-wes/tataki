@@ -9,9 +9,8 @@ license = "apache-2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-infer = { version = "0.16.0", default-features = false }
-clap = { version = "4.4.18", features = ["derive"] }
-nom = "7.1.3"
+infer = { version = "0.19.0", default-features = false }
+clap = { version = "4.5.53", features = ["derive"] }
 noodles = { version = "0.60.0", features = [
     "bam",
     "bcf",
@@ -24,27 +23,25 @@ noodles = { version = "0.60.0", features = [
     "sam",
     "vcf",
 ] }
-flate2 = { version = "1.0.17", features = ["zlib"], default-features = false }
-regex = "1.6.0"
-anyhow = "1.0.75"
+flate2 = { version = "1.1.5", features = ["zlib"], default-features = false }
+anyhow = "1.0.100"
 serde = { version = "1.0.193", features = ["derive"] }
-serde_yaml = "0.9.27"
-serde_json = "1.0.109"
-url = "2.5.0"
-reqwest = { version = "0.12.5", features = ["blocking"] }
-tempfile = "3.12.0"
-csv = "1.3.0"
-log = "0.4.20"
-env_logger = "0.11.0"
-shlex = "1.2.0"
-chrono = "0.4.31"
-lazy_static = "1.4.0"
+serde_yaml = "0.9.34-deprecated"
+serde_json = "1.0.145"
+url = "2.5.7"
+reqwest = { version = "0.12.26", features = ["blocking"] }
+tempfile = "3.23.0"
+csv = "1.4.0"
+log = "0.4.29"
+env_logger = "0.11.8"
+shlex = "1.3.0"
+chrono = "0.4.42"
+lazy_static = "1.5.0"
 bimap = "0.6.3"
-openssl = { version = "0.10.63", features = ["vendored"] }
-bzip2 = "0.4.4"
+bzip2 = "0.6.1"
 
 [dev-dependencies]
-assert_cmd = "2.0.13"
+assert_cmd = "2.1.1"
 digest = "0.10.7"
-predicates = "3.1.0"
-sha2 = "0.10.8"
+predicates = "3.1.3"
+sha2 = "0.10.9"
