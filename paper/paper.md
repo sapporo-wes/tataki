@@ -23,15 +23,16 @@ authors:
     given-names: Tazro
     surname: Ohta
     orcid: 0000-0003-3777-5945
-    affiliation: "2"
-    email: suecharo@sator.co.jp
+    affiliation: "2, 3"
+    email: tazro.ohta@chiba-u.jp
 affiliations:
  - name: Sator, Inc.
    index: 1
-   # TODO affiliation編集していただく
  - name: Institute for Advanced Academic Research, Chiba University
    index: 2
    ror: 01hjzeq58
+ - name: Department of Artificial Intelligence Medicine, Graduate School of Medicine, Chiba University
+   index: 3
 date: XX December 2025
 bibliography: paper.bib
 ---
@@ -76,6 +77,7 @@ Finally, `Tataki` focuses on identifying file formats and detecting structural a
 
 # Acknowledgements
 
+This work was supported by the research grant from the SECOM Science and Technology Foundation (FY2023 grant program).
 
 # References
 
