@@ -33,7 +33,7 @@ affiliations:
    ror: 01hjzeq58
  - name: Department of Artificial Intelligence Medicine, Graduate School of Medicine, Chiba University
    index: 3
-date: XX December 2025
+date: 24 December 2025
 bibliography: paper.bib
 ---
 
