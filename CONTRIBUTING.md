@@ -16,12 +16,15 @@ Instructions:
 1. Copy the template to a new file with a name that describes the format you are going to parse.
 2. Rename the `Template` struct to the name of the format you are going to parse.
 3. Implement the `determine_from_path` method of the `Parser` trait. Detailed instructions are provided [below](#implementing-the-determine_from_path-method).
-4. Add a `mod` statement to [parser.rs](src/parser.rs) so that `tataki` recognizes your module, and also add a branch to the `match` statement in the `from_str_to_parser` function.
+4. Add a `mod` statement (e.g., `mod bam;`) to the top of [parser.rs](src/parser.rs) so that `tataki` recognizes your module, and also add a branch to the `match` statement in the `from_str_to_parser` function.
 5. Write a test for the module. An input file for the test should be placed in the [tests/inputs](tests/inputs/) directory. If the size of the input file is large, please use Zenodo.
+6. Run all tests by executing `cargo test` to ensure everything is working correctly.
 
 ### Implementing the `determine_from_path` method
 
-This method determines if an input is in a format that your module can interpret.
+`determine_from_path` is a core method of the `Parser` trait. This method determines whether the input matches the target file format. Implementing your file format parsing algorithm here.
+
+The method reads the input file line by line from the `reader` and validates the format of each line. If a single record consists of multiple lines (e.g., a FASTQ record has 4 lines), implement logic that groups and validates these lines together as one complete record. Note that headers are not counted as records, so if the file format includes a header section, parse and validate the header first before processing records. For details on the method's [arguments](#arguments) and [return values](#return-values), refer to the sections below.
 
 ```rs
 impl Parser for Template {
@@ -37,8 +40,14 @@ impl Parser for Template {
         let file = std::fs::File::open(input_path)?;
         let reader = std::io::BufReader::new(file);
 
+        // Read the header in case the format has a header.
+        /*
+        example_read_header()?;
+         */
+
+        // Read the input line by line and check if it matches the expected format.
         for (count, line) in reader.lines().enumerate() {
-            let line = line?;
+            let _line = line?;
 
             // Do something with the line here
 
@@ -64,13 +73,13 @@ impl Parser for Template {
 #### Arguments
 
 - `input_path`: The path to the input file.
-- `options`: The options passed to the parser. `options.tidy` and `options.num_records` is used to control the number of lines to read from the input. `options.no_decompress` is irrelevant here.
+- `options`: The options passed to the parser. `options.tidy` and `options.num_records` are used to control the number of lines to read from the input. `options.no_decompress` is irrelevant for this method.
 
 ```rs
 pub struct InvokeOptions {
     /// Read full content of the input or not
     pub tidy: bool,
-    /// Irrevant for `determine_from_path` method
+    /// Irrelevant for `determine_from_path` method
     pub no_decompress: bool,
     /// Number of records to read
     pub num_records: usize,
@@ -79,22 +88,22 @@ pub struct InvokeOptions {
 
 #### Return Values
 
-- If the parser can successfully interpret the file, return `Ok(ModuleResult)`. Use `ModuleResult::with_result(label: Option<String>, id: Option<String>)` to construct the `ModuleResult` and show the Edam ontology information.
+- If the parser can successfully interpret the file, return `Ok(ModuleResult)`. Use `ModuleResult::with_result(label: Option<String>, id: Option<String>)` to construct the `ModuleResult` with the Edam ontology information.
   - `label`: EDAM Preferred Label
   - `id`: EDAM Class ID
 
 ```rs
-// example of successfull return 
+// Example of successful return 
 Ok(ModuleResult::with_result(
     Some("BAM".to_string()),
     Some("http://edamontology.org/format_2572".to_string()),
 ))
 ```
 
-- If the parser fails, return `Err(anyhow::Error)`, including an error message that specifies the reasons why the parser cannot process the file.
+- If the parser fails, return `Err(anyhow::Error)` with an error message specifying why the parser cannot process the file.
 
 ```rs
-// example of failure return
+// Example of failure return
 return Err(anyhow::anyhow!("The input is missing the required column."));
 ```
 
@@ -109,11 +118,13 @@ Instructions:
 
 ### Configuring the CWL document
 
+The CWL document is used for input format validation. The tool specified in `baseCommand` attempts to read and parse the input file, and if it succeeds (exits with a success code), the input is considered to be in the valid format.
+
 Please make sure that your CWL document has the following:
 
 - `requirements.DockerRequirement.dockerPull`: The docker image that the CWL document uses.
 - `baseCommand`: The base command with which the docker image is executed to parse the input.
-- `edam_id` and `label`: Describe the Edam ontology information when the parse is successfull. Both must have `tataki` prefix which is listed in the `$namespaces` section.
+- `edam_id` and `label`: Describe the Edam ontology information when the parse is successfull. Both must have `tataki` prefix as shown in the example below.
 
 Example of a CWL document:
 

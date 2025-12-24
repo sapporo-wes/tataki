@@ -58,7 +58,7 @@ pub struct Args {
     #[clap(long)]
     pub no_decompress: bool,
 
-    /// Number of records to read from the input file. Recommened to set it to a multiple of 4 to prevent false negatives. Conflicts with `--tidy` option.
+    /// Number of records to read from the input file. Recommended to set it to a multiple of 4 to prevent false negatives. Conflicts with `--tidy` option.
     #[clap(short, long, default_value = "100000", value_parser = validate_num_records_greater_than_zero)]
     pub num_records: usize,
 
