@@ -1,10 +1,10 @@
 [package]
 name = "tataki"
 authors = ["Tazro Ohta (tazro.ohta@chiba-u.jp)"]
-version = "0.4.2"
+version = "0.5.1"
 edition = "2021"
 repository = "https://github.com/sapporo-wes/tataki"
-license = "apache-2.0"
+license = "Apache-2.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -29,7 +29,7 @@ serde = { version = "1.0.193", features = ["derive"] }
 serde_yaml = "0.9.34-deprecated"
 serde_json = "1.0.145"
 url = "2.5.7"
-reqwest = { version = "0.12.26", features = ["blocking"] }
+reqwest = { version = "0.12.28", features = ["blocking"] }
 tempfile = "3.23.0"
 csv = "1.4.0"
 log = "0.4.29"
@@ -39,6 +39,7 @@ chrono = "0.4.42"
 lazy_static = "1.5.0"
 bimap = "0.6.3"
 bzip2 = "0.6.1"
+openssl = { version = "0.10.75", features = ["vendored"] }
 
 [dev-dependencies]
 assert_cmd = "2.1.1"

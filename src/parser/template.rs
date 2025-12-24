@@ -20,6 +20,12 @@ impl Parser for Template {
         let file = std::fs::File::open(input_path)?;
         let reader = std::io::BufReader::new(file);
 
+        // Read the header if the format has one.
+        /*
+        example_read_header()?;
+         */
+
+        // Read the input line by line and check if it matches the expected format.
         for (count, line) in reader.lines().enumerate() {
             let _line = line?;
 

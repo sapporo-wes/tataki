@@ -22,9 +22,13 @@ Tataki is a command-line tool designed primarily for detecting file formats in t
 - Can target local files, remote URLs and standard input
 - Compatible with [EDAM ontology](https://edamontology.org/page)
 
+## Why Tataki?
+
+Bioinformatics workflows often fail silently due to malformed, truncated, or inconsistent intermediate files, and many tools do not reliably indicate such issues through exit codes. These silent errors propagate through pipelines, consuming computational resources and making failures difficult to diagnose. Tataki addresses this problem by examining actual file contents with strict, domain-aware parsers, detecting anomalies before they propagate to downstream steps. By inserting Tataki between workflow steps, researchers can improve workflow robustness, catch format-related errors early, and ensure more reliable automated analyses.
+
 ## Installation
 
-A single binary is available for Linux x86_64.
+A single binary is available for Linux x86_64 and aarch64.
 
 ```shell
 curl -fsSL -o ./tataki https://github.com/sapporo-wes/tataki/releases/latest/download/tataki-$(uname -m)
@@ -60,7 +64,7 @@ File Path,Edam ID,Label,Decompressed ID,Decompressed Label
 path/to/unknown/file.txt,http://edamontology.org/format_2572,BAM,,
 ```
 
-Determine the file format of remote file, and output result in YAML format:
+Determine the file format of a remote file, and output result in YAML format:
 
 ```shell
 $ tataki https://path/to/unknown/file.txt  -q -f yaml
@@ -96,14 +100,14 @@ Options:
   -c, --conf <FILE>                Specify the tataki configuration file. If this option is not provided, the default configuration will be used. The option `--dry-run` shows the default configuration file
   -t, --tidy                       Attempt to read the whole lines from the input files
       --no-decompress              Do not try to decompress the input file when detecting the file format
-  -n, --num-records <NUM_RECORDS>  Number of records to read from the input file. Recommened to set it to a multiple of 4 to prevent false negatives. Conflicts with `--tidy` option [default: 100000]
+  -n, --num-records <NUM_RECORDS>  Number of records to read from the input file. Recommended to set it to a multiple of 4 to prevent false negatives. Conflicts with `--tidy` option [default: 100000]
       --dry-run                    Output the configuration file in yaml format and exit the program. If `--conf` option is not provided, the default configuration file will be shown
   -v, --verbose                    Show verbose log messages
   -q, --quiet                      Suppress all log messages
   -h, --help                       Print help
   -V, --version                    Print version
 
-Version: v0.4.2
+Version: v0.5.1
 ```
 
 ## Detailed Usage
@@ -127,6 +131,8 @@ Table of Contents
       - [3. Execute Tataki with `--tidy` Option](#3-execute-tataki-with---tidy-option)
   - [Potentially Unexpected Behaviors](#potentially-unexpected-behaviors)
   - [Contributing](#contributing)
+  - [Reporting Issues](#reporting-issues)
+  - [Getting Help](#getting-help)
   - [License](#license)
 
 ### Reading from Standard Input
@@ -155,7 +161,7 @@ tataki <FILE|URL> -t
 
 ### Handling Compressed Files
 
-Tataki attempts to automatically decompresses the input when detecting the file format. Currently, gzip and bzip2 are supported.
+Tataki attempts to automatically decompress the input when detecting the file format. Currently, gzip and bzip2 are supported.
 
 ```shell
 $ tataki foo.fastq.gz  -q -f yaml
@@ -167,7 +173,7 @@ foo.fastq.gz:
     label: FASTQ
 ```
 
-If you want to disable the decompression, use the `--no-decompress` option.
+If you want to disable decompression, use the `--no-decompress` option.
 
 ```shell
 $ tataki foo.fastq.gz  -q -f yaml --no-decompress
@@ -181,7 +187,7 @@ foo.fastq.gz:
 
 #### BGZF Compressed Files
 
-BGZF compressed files, such as BCF, BAM, or anything compressed with BGZF, is handled slight differently. When BGZF files are given as input, Tataki does not attempt to decompress them and pass them directly to the parsers.
+BGZF compressed files, such as BCF, BAM, or anything compressed with BGZF, are handled slightly differently. When BGZF files are given as input, Tataki does not attempt to decompress them and passes them directly to the parsers.
 
 ```shell
 $ tataki foo.bam  -q -f yaml
@@ -195,9 +201,9 @@ foo.bam:
 
 ### Determining Formats in Your Preferred Order
 
-Using the `-c|--conf=<FILE>` option allows you to change the order or set the file formats to use for determination.
+Using the `-c|--conf=<FILE>` option allows you to change the order or set of file formats to check for.
 
-The configuration file is in YAML format. Please refer to the default configuration shown below for the schema. See [Specify the CWL document in the configuration file](#2-add-path-to-configuration-file) for details on how to specify the CWL document.
+The configuration file is in YAML format. For the schema, please refer to the default configuration shown below. To specify a CWL document in the configuration file, see [Add Path to Configuration File](#2-add-path-to-configuration-file).
 
 The default configuration can be achieved by using the `--dry-run` option.
 
@@ -264,7 +270,7 @@ tataki:label: SAM
 
 #### 2. Add Path to Configuration File
 
-Insert a path to the CWL document in [the configuration file](#determining-formats-in-your-preferred-order). This example shown below executes the CWL document followed by SAM and BAM format detection.
+Insert a path to the CWL document in [the configuration file](#determining-formats-in-your-preferred-order). The example shown below executes the CWL document followed by SAM and BAM format detection.
 
 ```yaml
 order:
@@ -293,7 +299,7 @@ Tataki will output the file as the first format which its spec for header lines 
 
 - Gzipped binary files
 
-Gzipped binary files, such as `*.bam.gz`, is not suppored by tataki currently. It will fail with the following error message. `Error: stream did not contain valid UTF-8`
+Gzipped binary files, such as `*.bam.gz`, are not supported by tataki currently. It will fail with the following error message. `Error: stream did not contain valid UTF-8`
 
 - BGZF format
 
@@ -311,13 +317,30 @@ SAMPLE_01.pass.vcf.gz:
 
 ## Contributing
 
-Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to add a module to the two modes and submit a pull request to us.
+Please see our [CONTRIBUTING.md](CONTRIBUTING.md) for details on:
+
+- How to add new file format parsers
+- How to add CWL documents for external extension mode
+
+## Reporting Issues
+
+If you encounter any bugs or issues, please report them on our [GitHub Issues](https://github.com/sapporo-wes/tataki/issues) page. When reporting an issue, please include:
+
+- Your operating system, version and architecture
+- `Tataki` version (`tataki --version`)
+- Steps to reproduce the issue
+- Expected vs actual behavior
+- If possible, a sample file that reproduces the issue
+
+## Getting Help
+
+If you have questions or need support, open a [GitHub Issue](https://github.com/sapporo-wes/tataki/issues) for general questions.
 
 ## License
 
-The contents of this deposit are basically licensed under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0). See the [LICENSE](https://github.com/sapporo-wes/tataki/blob/main/LICENSE).
+The contents of this repository are basically licensed under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0). See the [LICENSE](https://github.com/sapporo-wes/tataki/blob/main/LICENSE).
 However, the following files are licensed under Creative Commons Attribution Share Alike 4.0 International (<https://spdx.org/licenses/CC-BY-SA-4.0.html>).
 
 - `./src/EDAM_1.25.id_label.csv`
   - Source: <https://github.com/edamontology/edamontology/releases/download/1.25/EDAM_1.25.csv>
-  - Removed the lines not related to 'format' and the columns other than 'Preferred Label' and 'Class ID'
+  - Processed with `extract_id_label.sh` to remove lines not related to 'format' and columns other than 'Preferred Label' and 'Class ID'
