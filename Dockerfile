@@ -1,29 +1,35 @@
-FROM debian:bookworm-slim
+# ---- Build stage ----
+FROM rust:bookworm AS builder
 
-
-LABEL org.opencontainers.image.authors="Tazro Ohta (tazro.ohta@chiba-u.jp)"
-LABEL org.opencontainers.image.url="https://github.com/sapporo-wes/tataki"
-LABEL org.opencontainers.image.version="v0.3.0"
-LABEL org.opencontainers.image.licenses="Apache2.0"
-LABEL org.opencontainers.image.description="CLI tool designed primarily for detecting file formats in the bio-science field"
-
-RUN apt-get update && apt-get install -y --fix-missing --no-install-recommends\
-    curl \
-    ca-certificates \
-    && apt-get clean && rm -rf /tmp/* /var/tmp/* \
+# liblzma-dev is required by lzma-sys (xz2 crate).
+# perl is required by the vendored OpenSSL build.
+# Other build essentials (gcc, make, pkg-config) are already in rust:bookworm.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        perl \
+        liblzma-dev \
     && rm -rf /var/lib/apt/lists/*
 
-RUN curl -fsSL -o /tmp/docker.tgz https://download.docker.com/linux/static/stable/$(uname -m)/docker-24.0.9.tgz && \
-    tar -C /tmp -xf /tmp/docker.tgz && \
-    mv /tmp/docker/* /usr/bin/ && \
-    rm -rf /tmp/docker /tmp/docker.tgz
+WORKDIR /src
+COPY . .
+RUN cargo build --release
 
-# ADD https://github.com/sapporo-wes/tataki/releases/latest/download/tataki /usr/bin/tataki
-RUN curl -fsSL -o /usr/bin/tataki https://github.com/sapporo-wes/tataki/releases/latest/download/tataki-$(uname -m) && \
-    chmod +x /usr/bin/tataki
+# ---- Runtime stage ----
+FROM debian:bookworm-slim
 
-WORKDIR /app
+LABEL org.opencontainers.image.authors="Tazro Inutano Ohta <inutano@gmail.com>"
+LABEL org.opencontainers.image.url="https://github.com/sapporo-wes/tataki"
+LABEL org.opencontainers.image.licenses="Apache-2.0"
+LABEL org.opencontainers.image.description="CLI tool for detecting file formats in the bio-science field"
 
-ENTRYPOINT [ "tataki" ]
-CMD [ "--help" ]
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
+COPY --from=builder /src/target/release/tataki /usr/bin/tataki
+
+WORKDIR /work
+
+ENTRYPOINT ["tataki"]
+CMD ["--help"]
