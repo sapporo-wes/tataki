@@ -352,6 +352,7 @@ mod tests {
 
     #[test]
     fn test_html_invoke() {
+        // toy.html has both .html extension and proper content markers
         let html_input_path = PathBuf::from("./tests/inputs/toy.html");
         invoke_wrapper_determine_pass(
             "html",
@@ -360,11 +361,29 @@ mod tests {
             "http://edamontology.org/format_2331",
         );
 
+        // .html extension alone is sufficient (browsers render any .html file)
+        let broken_html_path = PathBuf::from("./tests/inputs/broken.html");
+        invoke_wrapper_determine_pass(
+            "html",
+            &broken_html_path,
+            "HTML",
+            "http://edamontology.org/format_2331",
+        );
+
+        // No .html extension and no content markers → rejected
         let not_html_input_path = PathBuf::from("./tests/inputs/toy.fa");
         invoke_wrapper_determine_fail(
             "html",
             &not_html_input_path,
-            "Not an HTML file: missing DOCTYPE or <html element",
+            "Not an HTML file: no .html/.htm extension and content lacks both <!DOCTYPE html> and <html> tag",
+        );
+
+        // Has <html> in content but no doctype and no .html extension → rejected
+        let not_html_with_tag = PathBuf::from("./tests/inputs/not_html_with_tag.txt");
+        invoke_wrapper_determine_fail(
+            "html",
+            &not_html_with_tag,
+            "Not an HTML file: no .html/.htm extension and content lacks both <!DOCTYPE html> and <html> tag",
         );
     }
 

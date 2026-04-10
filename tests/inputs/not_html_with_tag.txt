@@ -1,0 +1,4 @@
+# Example markdown
+
+Here is an HTML tag in a code block: <html>
+This should not be detected as HTML.

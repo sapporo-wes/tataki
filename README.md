@@ -2,7 +2,7 @@
 
 Tataki is a command-line tool designed primarily for detecting file formats in the bioinformatics field. The tool comes with the following features:
 
-- Supports various **file formats mainly used in bioinformatics**
+- Supports various **file formats mainly used in bioinformatics** as well as common file formats
   - Bioinformatics file formats
     - bam
     - bcf
@@ -14,10 +14,18 @@ Tataki is a command-line tool designed primarily for detecting file formats in t
     - gtf
     - sam
     - vcf
+  - Common file formats
+    - csv
+    - html
+    - json
+    - pdf
+    - png
+    - svg
+    - tsv
   - Compression formats
     - gzip
     - bzip2
-  - will be added in the future
+  - Users can add custom format detection via [CWL documents](#executing-a-cwl-document-with-external-extension-mode)
 - Allows for the invocation of a [**CWL document**](https://www.commonwl.org/) and enables users to define their own complex criteria for detection.
 - Can target local files, remote URLs and standard input
 - Compatible with [EDAM ontology](https://edamontology.org/page)
@@ -220,7 +228,22 @@ order:
   - gtf
   - sam
   - vcf
+  - png
+  - pdf
+  - svg
+  - html
+  - json
+  - tsv
+  - csv
 ```
+
+**Important:** Tataki **only** checks the formats listed in the configuration file, in the order specified. The default configuration includes all supported built-in parsers. If you do not need all formats, create a custom configuration file listing only the formats relevant to your use case. Conversely, if a format is removed from the configuration, tataki will not detect it even if the input file is in that format.
+
+#### Parser Order Matters
+
+Tataki checks formats in the order listed in the configuration and returns the **first match**. The default order is intentional: magic-byte formats first (png, pdf), then structured markup (svg, html), then text-based formats (json, tsv, csv). This ordering minimizes false positives.
+
+**Security consideration:** Be careful when reordering parsers. For example, an HTML file containing tab characters (e.g., `<!doctype html>\t<body>...`) could be misdetected as TSV if `tsv` is listed before `html` in the configuration. If such a misidentified file is later served on an HTTP server for data distribution, a browser may render the HTML/JavaScript content, creating a potential cross-site scripting (XSS) vulnerability. As a general rule, keep markup format parsers (svg, html) before text-based parsers (json, tsv, csv) in the configuration.
 
 ### Executing a CWL Document with External Extension Mode
 
