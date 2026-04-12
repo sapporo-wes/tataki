@@ -1,0 +1,6 @@
+{
+  "sample": "SRR001",
+  "condition": "tumor",
+  "reads": 1234567,
+  "mapped": 1200000
+}

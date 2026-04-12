@@ -1,0 +1,4 @@
+sample	condition	reads	mapped
+SRR001	tumor	1234567	1200000
+SRR002	normal	987654	950000
+SRR003	tumor	1111111	1050000

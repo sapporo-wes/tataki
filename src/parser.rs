@@ -2,13 +2,20 @@ mod bam;
 mod bcf;
 mod bed;
 mod cram;
+mod csv;
 mod empty;
 mod fasta;
 mod fastq;
 mod gff3;
 mod gtf;
+mod html;
+mod json;
+mod pdf;
+mod png;
 mod sam;
+mod svg;
 mod template;
+mod tsv;
 mod vcf;
 
 use anyhow::{bail, Result};
@@ -40,13 +47,20 @@ pub fn from_str_to_parser(module_name: &str) -> Result<Box<dyn Parser>> {
         "bcf" => Ok(Box::new(bcf::Bcf)),
         "bed" => Ok(Box::new(bed::Bed)),
         "cram" => Ok(Box::new(cram::Cram)),
+        "csv" => Ok(Box::new(csv::Csv)),
         "empty" => Ok(Box::new(empty::Empty)),
         "fasta" => Ok(Box::new(fasta::Fasta)),
         "fastq" => Ok(Box::new(fastq::Fastq)),
         "gff3" => Ok(Box::new(gff3::Gff3)),
         "gff" => Ok(Box::new(gff3::Gff3)),
         "gtf" => Ok(Box::new(gtf::Gtf)),
+        "html" => Ok(Box::new(html::Html)),
+        "json" => Ok(Box::new(json::Json)),
+        "pdf" => Ok(Box::new(pdf::Pdf)),
+        "png" => Ok(Box::new(png::Png)),
         "sam" => Ok(Box::new(sam::Sam)),
+        "svg" => Ok(Box::new(svg::Svg)),
+        "tsv" => Ok(Box::new(tsv::Tsv)),
         "vcf" => Ok(Box::new(vcf::Vcf)),
         // "template" => Ok(Box::new(template::Template)),
         _ => bail!("Unsupported parser name: {}", module_name),
@@ -292,5 +306,160 @@ mod tests {
 
         let not_vcf_input_path = PathBuf::from("./tests/inputs/toy.bed");
         invoke_wrapper_determine_fail("vcf", &not_vcf_input_path, "empty input");
+    }
+
+    #[test]
+    fn test_png_invoke() {
+        let png_input_path = PathBuf::from("./tests/inputs/toy.png");
+        invoke_wrapper_determine_pass(
+            "png",
+            &png_input_path,
+            "PNG",
+            "http://edamontology.org/format_3603",
+        );
+
+        let not_png_input_path = PathBuf::from("./tests/inputs/toy.fa");
+        invoke_wrapper_determine_fail(
+            "png",
+            &not_png_input_path,
+            "Not a PNG file: invalid magic bytes",
+        );
+    }
+
+    #[test]
+    fn test_pdf_invoke() {
+        let pdf_input_path = PathBuf::from("./tests/inputs/toy.pdf");
+        invoke_wrapper_determine_pass(
+            "pdf",
+            &pdf_input_path,
+            "PDF",
+            "http://edamontology.org/format_3508",
+        );
+
+        let not_pdf_input_path = PathBuf::from("./tests/inputs/toy.fa");
+        invoke_wrapper_determine_fail(
+            "pdf",
+            &not_pdf_input_path,
+            "Not a PDF file: missing %PDF- header",
+        );
+    }
+
+    #[test]
+    fn test_svg_invoke() {
+        let svg_input_path = PathBuf::from("./tests/inputs/toy.svg");
+        invoke_wrapper_determine_pass(
+            "svg",
+            &svg_input_path,
+            "SVG",
+            "http://edamontology.org/format_3604",
+        );
+
+        let not_svg_input_path = PathBuf::from("./tests/inputs/toy.html");
+        invoke_wrapper_determine_fail(
+            "svg",
+            &not_svg_input_path,
+            "Not an SVG file: missing <svg element",
+        );
+    }
+
+    #[test]
+    fn test_html_invoke() {
+        // toy.html has both .html extension and proper content markers
+        let html_input_path = PathBuf::from("./tests/inputs/toy.html");
+        invoke_wrapper_determine_pass(
+            "html",
+            &html_input_path,
+            "HTML",
+            "http://edamontology.org/format_2331",
+        );
+
+        // .html extension alone is sufficient (browsers render any .html file)
+        let broken_html_path = PathBuf::from("./tests/inputs/broken.html");
+        invoke_wrapper_determine_pass(
+            "html",
+            &broken_html_path,
+            "HTML",
+            "http://edamontology.org/format_2331",
+        );
+
+        // No .html extension, but content has both doctype and <html> tag -> accepted
+        let html_like_txt_path =
+            PathBuf::from("./tests/inputs/not_html_with_doctype_and_html_tag.txt");
+        invoke_wrapper_determine_pass(
+            "html",
+            &html_like_txt_path,
+            "HTML",
+            "http://edamontology.org/format_2331",
+        );
+
+        // No .html extension and no content markers -> rejected
+        let not_html_input_path = PathBuf::from("./tests/inputs/toy.fa");
+        invoke_wrapper_determine_fail(
+            "html",
+            &not_html_input_path,
+            "Not an HTML file: no .html/.htm extension and content lacks both <!DOCTYPE html> and <html> tag",
+        );
+
+        // Has <html> in content but no doctype and no .html extension -> rejected
+        let not_html_with_tag = PathBuf::from("./tests/inputs/not_html_with_tag.txt");
+        invoke_wrapper_determine_fail(
+            "html",
+            &not_html_with_tag,
+            "Not an HTML file: no .html/.htm extension and content lacks both <!DOCTYPE html> and <html> tag",
+        );
+    }
+
+    #[test]
+    fn test_json_invoke() {
+        let json_input_path = PathBuf::from("./tests/inputs/toy.json");
+        invoke_wrapper_determine_pass(
+            "json",
+            &json_input_path,
+            "JSON",
+            "http://edamontology.org/format_3464",
+        );
+
+        let not_json_input_path = PathBuf::from("./tests/inputs/toy.fa");
+        invoke_wrapper_determine_fail(
+            "json",
+            &not_json_input_path,
+            "Not a JSON file: expected value at line 1 column 1",
+        );
+    }
+
+    #[test]
+    fn test_tsv_invoke() {
+        let tsv_input_path = PathBuf::from("./tests/inputs/toy.tsv");
+        invoke_wrapper_determine_pass(
+            "tsv",
+            &tsv_input_path,
+            "TSV",
+            "http://edamontology.org/format_3475",
+        );
+
+        let not_tsv_input_path = PathBuf::from("./tests/inputs/toy.fa");
+        invoke_wrapper_determine_fail(
+            "tsv",
+            &not_tsv_input_path,
+            "Not a TSV file: line has fewer than 2 tab-separated fields",
+        );
+    }
+
+    #[test]
+    fn test_csv_invoke() {
+        let csv_input_path = PathBuf::from("./tests/inputs/toy.csv");
+        invoke_wrapper_determine_pass(
+            "csv",
+            &csv_input_path,
+            "CSV",
+            "http://edamontology.org/format_3752",
+        );
+
+        let not_csv_input_path = PathBuf::from("./tests/inputs/toy.fa");
+        invoke_wrapper_determine_fail(
+            "csv",
+            &not_csv_input_path,
+            "Not a CSV file: line has fewer than 2 comma-separated fields",
+        );
     }
 }

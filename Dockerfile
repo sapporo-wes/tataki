@@ -26,4 +26,3 @@ WORKDIR /app
 
 ENTRYPOINT [ "tataki" ]
 CMD [ "--help" ]
-
