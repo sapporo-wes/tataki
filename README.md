@@ -123,6 +123,7 @@ Version: v0.5.1
 Table of Contents
 
 - [Tataki](#tataki)
+  - [Why Tataki?](#why-tataki)
   - [Installation](#installation)
     - [Quick Start](#quick-start)
   - [Usage](#usage)
@@ -133,6 +134,7 @@ Table of Contents
     - [Handling Compressed Files](#handling-compressed-files)
       - [BGZF Compressed Files](#bgzf-compressed-files)
     - [Determining Formats in Your Preferred Order](#determining-formats-in-your-preferred-order)
+      - [Parser Order Matters](#parser-order-matters)
     - [Executing a CWL Document with External Extension Mode](#executing-a-cwl-document-with-external-extension-mode)
       - [1. Prepare a CWL Document](#1-prepare-a-cwl-document)
       - [2. Add Path to Configuration File](#2-add-path-to-configuration-file)
@@ -241,7 +243,7 @@ order:
 
 #### Parser Order Matters
 
-Tataki checks formats in the order listed in the configuration and returns the **first match**. The default order is intentional: magic-byte formats first (png, pdf), then structured markup (svg, html), then text-based formats (json, tsv, csv). This ordering minimizes false positives.
+Tataki checks formats in the order listed in the configuration and returns the **first match**. The default order is intentional: bioinformatics formats first (bam, bcf, bed, cram, fasta, fastq, gff3, gtf, sam, vcf), then magic-byte formats (png, pdf), then structured markup (svg, html), then text-based formats (json, tsv, csv). This ordering minimizes false positives.
 
 **Security consideration:** Be careful when reordering parsers. For example, an HTML file containing tab characters (e.g., `<!doctype html>\t<body>...`) could be misdetected as TSV if `tsv` is listed before `html` in the configuration. If such a misidentified file is later served on an HTTP server for data distribution, a browser may render the HTML/JavaScript content, creating a potential cross-site scripting (XSS) vulnerability. As a general rule, keep markup format parsers (svg, html) before text-based parsers (json, tsv, csv) in the configuration.
 
