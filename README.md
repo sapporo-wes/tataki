@@ -115,7 +115,7 @@ Options:
   -h, --help                       Print help
   -V, --version                    Print version
 
-Version: v0.5.1
+Version: v0.5.2
 ```
 
 ## Detailed Usage
