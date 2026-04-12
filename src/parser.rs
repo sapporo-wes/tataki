@@ -370,6 +370,16 @@ mod tests {
             "http://edamontology.org/format_2331",
         );
 
+        // No .html extension, but content has both doctype and <html> tag → accepted
+        let html_like_txt_path =
+            PathBuf::from("./tests/inputs/not_html_with_doctype_and_html_tag.txt");
+        invoke_wrapper_determine_pass(
+            "html",
+            &html_like_txt_path,
+            "HTML",
+            "http://edamontology.org/format_2331",
+        );
+
         // No .html extension and no content markers → rejected
         let not_html_input_path = PathBuf::from("./tests/inputs/toy.fa");
         invoke_wrapper_determine_fail(
