@@ -319,7 +319,11 @@ mod tests {
         );
 
         let not_png_input_path = PathBuf::from("./tests/inputs/toy.fa");
-        invoke_wrapper_determine_fail("png", &not_png_input_path, "Not a PNG file: invalid magic bytes");
+        invoke_wrapper_determine_fail(
+            "png",
+            &not_png_input_path,
+            "Not a PNG file: invalid magic bytes",
+        );
     }
 
     #[test]
@@ -333,7 +337,11 @@ mod tests {
         );
 
         let not_pdf_input_path = PathBuf::from("./tests/inputs/toy.fa");
-        invoke_wrapper_determine_fail("pdf", &not_pdf_input_path, "Not a PDF file: missing %PDF- header");
+        invoke_wrapper_determine_fail(
+            "pdf",
+            &not_pdf_input_path,
+            "Not a PDF file: missing %PDF- header",
+        );
     }
 
     #[test]
@@ -347,7 +355,11 @@ mod tests {
         );
 
         let not_svg_input_path = PathBuf::from("./tests/inputs/toy.html");
-        invoke_wrapper_determine_fail("svg", &not_svg_input_path, "Not an SVG file: missing <svg element");
+        invoke_wrapper_determine_fail(
+            "svg",
+            &not_svg_input_path,
+            "Not an SVG file: missing <svg element",
+        );
     }
 
     #[test]
@@ -370,7 +382,7 @@ mod tests {
             "http://edamontology.org/format_2331",
         );
 
-        // No .html extension, but content has both doctype and <html> tag → accepted
+        // No .html extension, but content has both doctype and <html> tag -> accepted
         let html_like_txt_path =
             PathBuf::from("./tests/inputs/not_html_with_doctype_and_html_tag.txt");
         invoke_wrapper_determine_pass(
@@ -380,7 +392,7 @@ mod tests {
             "http://edamontology.org/format_2331",
         );
 
-        // No .html extension and no content markers → rejected
+        // No .html extension and no content markers -> rejected
         let not_html_input_path = PathBuf::from("./tests/inputs/toy.fa");
         invoke_wrapper_determine_fail(
             "html",
@@ -388,7 +400,7 @@ mod tests {
             "Not an HTML file: no .html/.htm extension and content lacks both <!DOCTYPE html> and <html> tag",
         );
 
-        // Has <html> in content but no doctype and no .html extension → rejected
+        // Has <html> in content but no doctype and no .html extension -> rejected
         let not_html_with_tag = PathBuf::from("./tests/inputs/not_html_with_tag.txt");
         invoke_wrapper_determine_fail(
             "html",

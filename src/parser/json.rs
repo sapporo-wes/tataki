@@ -27,7 +27,7 @@ impl Parser for Json {
             Ok(_) => {}
             Err(e) => {
                 // An EOF error means the file was truncated at our probe limit but was
-                // syntactically valid up to that point — treat as JSON.
+                // syntactically valid up to that point - treat as JSON.
                 if e.classify() != serde_json::error::Category::Eof {
                     bail!("Not a JSON file: {}", e);
                 }

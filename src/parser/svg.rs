@@ -18,7 +18,9 @@ impl Parser for Svg {
         let mut buf = [0u8; 1024];
         let mut file = File::open(input_path)?;
         let n = file.read(&mut buf)?;
-        let text = std::str::from_utf8(&buf[..n]).unwrap_or("").to_ascii_lowercase();
+        let text = std::str::from_utf8(&buf[..n])
+            .unwrap_or("")
+            .to_ascii_lowercase();
         if !text.contains("<svg") {
             bail!("Not an SVG file: missing <svg element");
         }
