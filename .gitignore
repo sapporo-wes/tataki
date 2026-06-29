@@ -96,3 +96,5 @@ tests/cache_dir/
 # memo and old files
 **/memo.txt
 **/old/
+cc-docs/
+.claude/**
