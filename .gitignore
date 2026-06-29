@@ -98,3 +98,4 @@ tests/cache_dir/
 **/old/
 cc-docs/
 .claude/**
+CLAUDE.md
