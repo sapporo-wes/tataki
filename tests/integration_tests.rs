@@ -38,6 +38,37 @@ new test cases involving new features:
 13. --no-decompress
 */
 
+// Reads the header row as well as the records, because the ontology the run reports
+// shows up in the column names and not only in the values.
+fn read_csv(text: &str) -> (csv::StringRecord, Vec<csv::StringRecord>) {
+    let mut rdr = csv::Reader::from_reader(text.as_bytes());
+    let headers = rdr
+        .headers()
+        .expect("Failed to read the output header")
+        .clone();
+    let records = rdr
+        .records()
+        .collect::<Result<Vec<_>, csv::Error>>()
+        .expect("Failed to parse the output as CSV");
+
+    (headers, records)
+}
+
+fn read_expected_csv(path: &str) -> (csv::StringRecord, Vec<csv::StringRecord>) {
+    let mut rdr =
+        csv::Reader::from_path(Path::new(path)).expect("Failed to read the expected output file");
+    let headers = rdr
+        .headers()
+        .expect("Failed to read the expected output header")
+        .clone();
+    let records = rdr
+        .records()
+        .collect::<Result<Vec<_>, csv::Error>>()
+        .expect("Failed to parse the expected output as CSV");
+
+    (headers, records)
+}
+
 #[test]
 // 1. default
 fn output_in_csv() {
@@ -318,4 +349,21 @@ fn can_read_entirety_of_input_file() {
         .expect("Failed to parse the expected output as CSV");
 
     assert_eq!(output_records, expected_output_records);
+}
+
+#[test]
+// 13. read compressed file
+// Check that the compression format is reported as the format of the input itself and
+// the format found inside it is reported as the decompressed one.
+fn reports_a_compressed_input_as_the_compression_format() {
+    check_and_create_cache_dir().expect("Failed to create the cache directory");
+
+    let out = tataki(&["./inputs/toy.fa.gz"], &[]);
+
+    let (headers, records) = read_csv(&out.stdout);
+    let (expected_headers, expected_records) =
+        read_expected_csv("tests/outputs/expected_output_compressed.csv");
+
+    assert_eq!(headers, expected_headers);
+    assert_eq!(records, expected_records);
 }

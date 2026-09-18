@@ -1,0 +1,2 @@
+File Path,Edam ID,Label,Decompressed ID,Decompressed Label
+./inputs/toy.fa.gz,http://edamontology.org/format_3989,GZIP format,http://edamontology.org/format_1929,FASTA
