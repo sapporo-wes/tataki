@@ -36,6 +36,10 @@ new test cases involving new features:
 
 
 13. --no-decompress
+14. --bffo
+15. --bffo -f yaml
+16. read compressed file with --bffo
+17. --bffo with a CWL document
 */
 
 // Reads the header row as well as the records, because the ontology the run reports
@@ -363,6 +367,87 @@ fn reports_a_compressed_input_as_the_compression_format() {
     let (headers, records) = read_csv(&out.stdout);
     let (expected_headers, expected_records) =
         read_expected_csv("tests/outputs/expected_output_compressed.csv");
+
+    assert_eq!(headers, expected_headers);
+    assert_eq!(records, expected_records);
+}
+
+#[test]
+// 14. --bffo
+// Check that the BFFO terms replace the EDAM ones in both the values and the column
+// names, and that a format BFFO has no term for is reported as empty.
+fn outputs_bffo_terms_instead_of_edam_terms() {
+    check_and_create_cache_dir().expect("Failed to create the cache directory");
+
+    let out = tataki(
+        &["./inputs/toy.sam", "./inputs/toy.fa", "./inputs/toy.html"],
+        &["--bffo"],
+    );
+
+    let (headers, records) = read_csv(&out.stdout);
+    let (expected_headers, expected_records) =
+        read_expected_csv("tests/outputs/expected_output_bffo.csv");
+
+    assert_eq!(headers, expected_headers);
+    assert_eq!(records, expected_records);
+}
+
+#[test]
+// 15. --bffo -f yaml
+fn outputs_bffo_terms_in_yaml() {
+    check_and_create_cache_dir().expect("Failed to create the cache directory");
+
+    let out = tataki(
+        &["./inputs/toy.sam", "./inputs/toy.fa", "./inputs/toy.html"],
+        &["-b", "-f", "yaml"],
+    );
+
+    let output_yaml: serde_yaml::Value =
+        serde_yaml::from_str(&out.stdout).expect("Failed to parse the output as YAML");
+
+    let expected_output_str =
+        fs::read_to_string(Path::new("tests/outputs/expected_output_bffo.yaml"))
+            .expect("Failed to read the expected output file");
+    let expected_output_yaml: serde_yaml::Value = serde_yaml::from_str(&expected_output_str)
+        .expect("Failed to parse the expected output as YAML");
+
+    assert_eq!(
+        output_yaml, expected_output_yaml,
+        "The tool's YAML output did not match the expected output."
+    );
+}
+
+#[test]
+// 16. read compressed file with --bffo
+// Check that both the compression format and the format inside it move to BFFO together.
+fn outputs_bffo_terms_for_a_compressed_input() {
+    check_and_create_cache_dir().expect("Failed to create the cache directory");
+
+    let out = tataki(&["./inputs/toy.fa.gz"], &["--bffo"]);
+
+    let (headers, records) = read_csv(&out.stdout);
+    let (expected_headers, expected_records) =
+        read_expected_csv("tests/outputs/expected_output_bffo_compressed.csv");
+
+    assert_eq!(headers, expected_headers);
+    assert_eq!(records, expected_records);
+}
+
+#[test]
+// 17. --bffo with a CWL document
+// Check that the BFFO term a CWL document declares wins over the table. The fixture names
+// a term the table does not hold, so a match can only have come from the document itself.
+fn outputs_bffo_terms_declared_in_a_cwl_document() {
+    check_and_create_cache_dir().expect("Failed to create the cache directory");
+
+    let out = tataki(
+        &["./inputs/toy.py"],
+        &["-c", "./conf/run_cwl_bffo_test.conf", "--bffo"],
+    );
+
+    let (headers, records) = read_csv(&out.stdout);
+    let (expected_headers, expected_records) =
+        read_expected_csv("tests/outputs/expected_output_bffo_cwl.csv");
 
     assert_eq!(headers, expected_headers);
     assert_eq!(records, expected_records);

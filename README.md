@@ -28,7 +28,7 @@ Tataki is a command-line tool designed primarily for detecting file formats in t
   - Users can add custom format detection via [CWL documents](#executing-a-cwl-document-with-external-extension-mode)
 - Allows for the invocation of a [**CWL document**](https://www.commonwl.org/) and enables users to define their own complex criteria for detection.
 - Can target local files, remote URLs and standard input
-- Compatible with [EDAM ontology](https://edamontology.org/page)
+- Compatible with [EDAM ontology](https://edamontology.org/page), and with [BFFO](https://bffo.org/) via the [`-b|--bffo`](#outputting-bffo-terms) option
 
 ## Why Tataki?
 
@@ -110,6 +110,7 @@ Options:
       --no-decompress              Do not try to decompress the input file when detecting the file format
   -n, --num-records <NUM_RECORDS>  Number of records to read from the input file. Recommended to set it to a multiple of 4 to prevent false negatives. Conflicts with `--tidy` option [default: 100000]
       --dry-run                    Output the configuration file in yaml format and exit the program. If `--conf` option is not provided, the default configuration file will be shown
+  -b, --bffo                       Output BFFO terms instead of EDAM terms
   -v, --verbose                    Show verbose log messages
   -q, --quiet                      Suppress all log messages
   -h, --help                       Print help
@@ -133,6 +134,7 @@ Table of Contents
       - [Reading the Whole Lines from the Input](#reading-the-whole-lines-from-the-input)
     - [Handling Compressed Files](#handling-compressed-files)
       - [BGZF Compressed Files](#bgzf-compressed-files)
+    - [Outputting BFFO Terms](#outputting-bffo-terms)
     - [Determining Formats in Your Preferred Order](#determining-formats-in-your-preferred-order)
       - [Parser Order Matters](#parser-order-matters)
     - [Executing a CWL Document with External Extension Mode](#executing-a-cwl-document-with-external-extension-mode)
@@ -209,6 +211,46 @@ foo.bam:
     label: null
 ```
 
+### Outputting BFFO Terms
+
+By default Tataki reports the format it found as an [EDAM ontology](https://edamontology.org/page) Class ID and Preferred Label. The `-b|--bffo` option reports the same detection as a [BFFO](https://bffo.org/) (Bio File Formats & Ontology) term instead.
+
+```shell
+$ tataki foo.fastq.gz -q -f yaml
+foo.fastq.gz:
+  id: http://edamontology.org/format_3989
+  label: GZIP format
+  decompressed:
+    id: http://edamontology.org/format_1930
+    label: FASTQ
+```
+
+```shell
+$ tataki foo.fastq.gz -q -f yaml --bffo
+foo.fastq.gz:
+  id: https://bffo.org/format/GZIP/
+  label: GZIP
+  decompressed:
+    id: https://bffo.org/format/FASTQ/
+    label: FASTQ
+```
+
+The option changes what is reported, not what is detected: the parsers and the configured order behave exactly the same either way. In the CSV and TSV output the column names change along with the values, from `Edam ID` and `Label` to `BFFO ID` and `BFFO Label`.
+
+**Formats without a BFFO term** are reported as empty. Tataki supports a few formats that BFFO has no term for, and an input detected as one of them produces an empty `id` and `label` under `--bffo` even though the detection itself succeeded.
+
+```shell
+$ tataki foo.html -q -f yaml --bffo
+foo.html:
+  id: null
+  label: null
+  decompressed:
+    id: null
+    label: null
+```
+
+The mapping between the formats Tataki detects, their EDAM terms and their BFFO terms is kept in [`src/tataki_formats_edam_bffo.csv`](src/tataki_formats_edam_bffo.csv).
+
 ### Determining Formats in Your Preferred Order
 
 Using the `-c|--conf=<FILE>` option allows you to change the order or set of file formats to check for.
@@ -265,6 +307,8 @@ Tataki accepts a CWL document in a specific format. The following is an example 
 
 `edam_id` and `label` are the two required fields for the CWL document. Both must have `tataki` prefix which is listed in the `$namespaces` section of the document.
 
+`bffo_id` and `bffo_label` are optional. When they are omitted, Tataki looks the BFFO term up from the `edam_id`, so a CWL document that detects a format Tataki already knows needs no change to work with [`-b|--bffo`](#outputting-bffo-terms). Give them when the format has no EDAM term, or when you want a BFFO term other than the one Tataki would find. Both must be given together; one alone is ignored.
+
 ```cwl
 cwlVersion: v1.2
 class: CommandLineTool
@@ -291,6 +335,10 @@ $namespaces:
 
 tataki:edam_id: http://edamontology.org/format_2573
 tataki:label: SAM
+
+# Optional. Omit to let Tataki look the BFFO term up from the edam_id above.
+tataki:bffo_id: https://bffo.org/format/SAM/
+tataki:bffo_label: SAM
 ```
 
 #### 2. Add Path to Configuration File
@@ -369,3 +417,8 @@ However, the following files are licensed under Creative Commons Attribution Sha
 - `./src/EDAM_1.25.id_label.csv`
   - Source: <https://github.com/edamontology/edamontology/releases/download/1.25/EDAM_1.25.csv>
   - Processed with `extract_id_label.sh` to remove lines not related to 'format' and columns other than 'Preferred Label' and 'Class ID'
+
+The following file is licensed under Creative Commons Attribution 4.0 International (<https://spdx.org/licenses/CC-BY-4.0.html>).
+
+- `./src/tataki_formats_edam_bffo.csv`
+  - Contains BFFO terms from <https://bffo.org/>

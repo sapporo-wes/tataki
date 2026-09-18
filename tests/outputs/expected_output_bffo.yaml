@@ -1,0 +1,18 @@
+./inputs/toy.sam:
+  id: https://bffo.org/format/SAM/
+  label: SAM
+  decompressed:
+    id: null
+    label: null
+./inputs/toy.fa:
+  id: https://bffo.org/format/FASTA/
+  label: FASTA
+  decompressed:
+    id: null
+    label: null
+./inputs/toy.html:
+  id: null
+  label: null
+  decompressed:
+    id: null
+    label: null

@@ -1,0 +1,4 @@
+File Path,BFFO ID,BFFO Label,Decompressed ID,Decompressed Label
+./inputs/toy.sam,https://bffo.org/format/SAM/,SAM,,
+./inputs/toy.fa,https://bffo.org/format/FASTA/,FASTA,,
+./inputs/toy.html,,,,

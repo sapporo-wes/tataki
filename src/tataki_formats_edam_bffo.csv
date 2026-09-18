@@ -1,0 +1,22 @@
+tataki_key,edam_id,edam_label,bffo_slug,bffo_url
+bam,format_2572,BAM,BAM,https://bffo.org/format/BAM/
+bcf,format_3020,BCF,BCF,https://bffo.org/format/BCF/
+bed,format_3003,BED,BED,https://bffo.org/format/BED/
+cram,format_3462,CRAM,CRAM,https://bffo.org/format/CRAM/
+fasta,format_1929,FASTA,FASTA,https://bffo.org/format/FASTA/
+fastq,format_1930,FASTQ,FASTQ,https://bffo.org/format/FASTQ/
+gff3,format_1975,GFF3,GFF3,https://bffo.org/format/GFF3/
+gtf,format_2306,GTF,GTF,https://bffo.org/format/GTF/
+sam,format_2573,SAM,SAM,https://bffo.org/format/SAM/
+vcf,format_3016,VCF,VCF,https://bffo.org/format/VCF/
+csv,format_3752,CSV,CSV,https://bffo.org/format/CSV/
+html,format_2331,HTML,,
+json,format_3464,JSON,JSON,https://bffo.org/format/JSON/
+pdf,format_3508,PDF,,
+png,format_3603,PNG,PNG,https://bffo.org/format/PNG/
+svg,format_3604,SVG,SVG,https://bffo.org/format/SVG/
+tsv,format_3475,TSV,TSV,https://bffo.org/format/TSV/
+gzip,format_3989,GZIP format,GZIP,https://bffo.org/format/GZIP/
+bzip2,,,,
+bgzf,,,BGZF,https://bffo.org/format/BGZF/
+empty,format_1964,plain text format (unformatted),,
