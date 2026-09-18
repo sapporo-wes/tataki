@@ -77,8 +77,8 @@ Determine the file format of a remote file, and output result in YAML format:
 ```shell
 $ tataki https://path/to/unknown/file.txt  -q -f yaml
 https://path/to/unknown/file.txt:
-  label: GZIP format
   id: http://edamontology.org/format_3989
+  label: GZIP format
   decompressed:
     id: http://edamontology.org/format_1930
     label: FASTQ
@@ -176,8 +176,8 @@ Tataki attempts to automatically decompress the input when detecting the file fo
 ```shell
 $ tataki foo.fastq.gz  -q -f yaml
 foo.fastq.gz:
-  label: GZIP format
   id: http://edamontology.org/format_3989
+  label: GZIP format
   decompressed:
     id: http://edamontology.org/format_1930
     label: FASTQ
@@ -188,8 +188,8 @@ If you want to disable decompression, use the `--no-decompress` option.
 ```shell
 $ tataki foo.fastq.gz  -q -f yaml --no-decompress
 foo.fastq.gz:
-  label: GZIP format
   id: http://edamontology.org/format_3989
+  label: GZIP format
   decompressed:
     id: null
     label: null
@@ -202,11 +202,11 @@ BGZF compressed files, such as BCF, BAM, or anything compressed with BGZF, are h
 ```shell
 $ tataki foo.bam  -q -f yaml
 foo.bam:
-  label: BAM
   id: http://edamontology.org/format_2572
+  label: BAM
   decompressed:
-    label: null
     id: null
+    label: null
 ```
 
 ### Determining Formats in Your Preferred Order
@@ -336,8 +336,8 @@ SAMPLE_01.pass.vcf.gz:
   id: http://edamontology.org/format_3016
   label: VCF
   decompressed:
-    label: null
     id: null
+    label: null
 ```
 
 ## Contributing
