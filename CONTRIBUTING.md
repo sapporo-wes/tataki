@@ -125,6 +125,7 @@ Please make sure that your CWL document has the following:
 - `requirements.DockerRequirement.dockerPull`: The docker image that the CWL document uses.
 - `baseCommand`: The base command with which the docker image is executed to parse the input.
 - `edam_id` and `label`: Describe the Edam ontology information when the parse is successfull. Both must have `tataki` prefix as shown in the example below.
+- `bffo_id` and `bffo_label`: Optional. Describe the BFFO term reported under the `-b|--bffo` option. When omitted, Tataki looks the term up from `edam_id` in [`src/tataki_formats_edam_bffo.csv`](src/tataki_formats_edam_bffo.csv), so give them only when the format has no EDAM term or needs a term other than the one in that table. Both must be given together; one alone is ignored.
 
 Example of a CWL document:
 
@@ -157,4 +158,8 @@ $namespaces:
 # Configure Edam ontology information here
 tataki:edam_id: http://edamontology.org/format_edam-id
 tataki:label: edam-label
+
+# Optional. Omit to let Tataki look the BFFO term up from the edam_id above.
+tataki:bffo_id: https://bffo.org/format/bffo-slug/
+tataki:bffo_label: bffo-slug
 ```

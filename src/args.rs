@@ -10,6 +10,14 @@ pub enum OutputFormat {
     Json,
 }
 
+// The ontology whose terms are reported. Both are held in every result, so this
+// selects what to print rather than what to detect.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Ontology {
+    Edam,
+    Bffo,
+}
+
 #[derive(Parser, Debug)]
 #[clap(
     name = env!("CARGO_PKG_NAME"),
@@ -66,6 +74,10 @@ pub struct Args {
     #[clap(long)]
     pub dry_run: bool,
 
+    /// Output BFFO terms instead of EDAM terms
+    #[clap(short, long)]
+    pub bffo: bool,
+
     /// Show verbose log messages
     #[clap(short, long)]
     pub verbose: bool,
@@ -76,6 +88,14 @@ pub struct Args {
 }
 
 impl Args {
+    pub const fn get_ontology(&self) -> Ontology {
+        if self.bffo {
+            Ontology::Bffo
+        } else {
+            Ontology::Edam
+        }
+    }
+
     pub const fn get_output_format(&self) -> OutputFormat {
         if self.yaml {
             OutputFormat::Yaml

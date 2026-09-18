@@ -6,29 +6,62 @@ use std::path::{Path, PathBuf};
 use tempfile::{NamedTempFile, TempDir};
 use url::Url;
 
-use crate::args::{Args, OutputFormat};
+use crate::args::{Args, Ontology, OutputFormat};
 use crate::ext_tools::{create_dummy_docker_executable, ensure_docker_presence};
 use crate::source::{CompressedFormat, Source};
+
+// A format reported by a module, held in every ontology tataki can output.
+#[derive(Debug, Default)]
+pub struct FormatRef {
+    edam_id: Option<String>,
+    edam_label: Option<String>,
+    bffo_id: Option<String>,
+    bffo_label: Option<String>,
+}
+
+impl FormatRef {
+    const fn id(&self, ontology: Ontology) -> Option<&String> {
+        match ontology {
+            Ontology::Edam => self.edam_id.as_ref(),
+            Ontology::Bffo => self.bffo_id.as_ref(),
+        }
+    }
+
+    const fn label(&self, ontology: Ontology) -> Option<&String> {
+        match ontology {
+            Ontology::Edam => self.edam_label.as_ref(),
+            Ontology::Bffo => self.bffo_label.as_ref(),
+        }
+    }
+}
 
 // Struct to store the result of Parser invocation and ExtTools invocation.
 #[derive(Debug)]
 pub struct ModuleResult {
     input: String,
     is_ok: bool,
-    label: Option<String>,
-    id: Option<String>,
+    format: FormatRef,
     error_message: Option<String>,
-    decompressed: Option<DecompressedFormat>,
+    decompressed: Option<FormatRef>,
 }
 
 impl From<&CompressedFormat> for ModuleResult {
     fn from(compressed_format: &CompressedFormat) -> Self {
         match compressed_format {
+            // BGZF is left empty even though BFFO has a term for it. The parsers read
+            // BGZF in place, so naming the container here would give the BFFO output a
+            // different shape from the EDAM output for the very same input.
             CompressedFormat::Bgzf => Self::with_result(None, None),
-            CompressedFormat::GZ => Self::with_result(
-                Some("GZIP format".to_string()),
-                Some("http://edamontology.org/format_3989".to_string()),
-            ),
+            CompressedFormat::GZ => {
+                let mut result = Self::with_result(
+                    Some("GZIP format".to_string()),
+                    Some("http://edamontology.org/format_3989".to_string()),
+                );
+                result.resolve_bffo(Some("gzip"));
+                result
+            }
+            // bzip2 has no term in either ontology. Coining one here would put a value
+            // that belongs to neither ontology in a column that names an ontology.
             CompressedFormat::BZ2 => Self::with_result(None, None),
             CompressedFormat::None => Self::with_result(None, None),
         }
@@ -40,19 +73,23 @@ impl ModuleResult {
         Self {
             input: String::new(),
             is_ok: true,
-            label,
-            id,
+            format: FormatRef {
+                edam_id: id,
+                edam_label: label,
+                bffo_id: None,
+                bffo_label: None,
+            },
             error_message: None,
             decompressed: None,
         }
     }
 
     pub const fn label(&self) -> Option<&String> {
-        self.label.as_ref()
+        self.format.edam_label.as_ref()
     }
 
     pub const fn id(&self) -> Option<&String> {
-        self.id.as_ref()
+        self.format.edam_id.as_ref()
     }
 
     pub const fn error_message(&self) -> Option<&String> {
@@ -71,229 +108,135 @@ impl ModuleResult {
         self.input = input;
     }
 
-    fn swap_edam_of_module_result_and_compressed_format(&mut self, compressed_format_edam: Self) {
-        let tmp_label = self.label.to_owned();
-        let tmp_id = self.id.to_owned();
+    /// Looks up the BFFO term for the format this module reported.
+    ///
+    /// - `tataki_key`: the built-in parser or compression format name, or `None` for a
+    ///   CWL module, which the table identifies by its EDAM id rather than by a name
+    pub fn resolve_bffo(&mut self, tataki_key: Option<&str>) {
+        if let Some(bffo) =
+            crate::bffo::BFFO_MAP.resolve(tataki_key, self.format.edam_id.as_deref())
+        {
+            self.format.bffo_id = Some(bffo.id.clone());
+            self.format.bffo_label = Some(bffo.label.clone());
+        }
+    }
 
-        self.label = compressed_format_edam.label;
-        self.id = compressed_format_edam.id;
+    pub fn set_bffo(&mut self, id: Option<String>, label: Option<String>) {
+        self.format.bffo_id = id;
+        self.format.bffo_label = label;
+    }
 
-        let tmp_decompressed = DecompressedFormat {
-            label: tmp_label,
-            id: tmp_id,
-        };
-        self.decompressed = Some(tmp_decompressed);
+    // Both ontologies move together, so the whole format is swapped rather than each
+    // id and label in turn, which would silently leave a new ontology behind.
+    fn wrap_with_compressed_format(&mut self, compressed_format: Self) {
+        let decompressed = std::mem::replace(&mut self.format, compressed_format.format);
+        self.decompressed = Some(decompressed);
     }
 
     pub fn create_module_results_string(
         module_results: &[Self],
         format: OutputFormat,
+        ontology: Ontology,
     ) -> Result<String> {
-        fn csv_serialize(module_results: &[ModuleResult], delimiter: u8) -> Result<String> {
-            let mut data = Vec::new();
-            {
-                let mut writer = csv::WriterBuilder::new()
-                    .delimiter(delimiter)
-                    .from_writer(&mut data);
-
-                writer.write_record([
-                    "File Path",
-                    "Edam ID",
-                    "Label",
-                    "Decompressed ID",
-                    "Decompressed Label",
-                ])?;
-
-                for module_result in module_results.iter() {
-                    writer.serialize((
-                        &module_result.input,
-                        &module_result.id,
-                        &module_result.label,
-                        &module_result
-                            .decompressed
-                            .as_ref()
-                            .and_then(|d| d.id.as_ref()),
-                        &module_result
-                            .decompressed
-                            .as_ref()
-                            .and_then(|d| d.label.as_ref()),
-                    ))?;
-                }
-            }
-
-            let data_str = String::from_utf8_lossy(&data);
-            Ok(data_str.into_owned())
-        }
-
         match format {
-            OutputFormat::Yaml => {
-                let mut serialized_map: HashMap<String, serde_yaml::Value> = HashMap::new();
-                for module_result in module_results {
-                    let target_file_path = &module_result.input;
+            OutputFormat::Tsv => Self::separated_values_string(module_results, ontology, b'\t'),
+            OutputFormat::Csv => Self::separated_values_string(module_results, ontology, b','),
+            OutputFormat::Yaml => Ok(serde_yaml::to_string(&Self::output_entries(
+                module_results,
+                ontology,
+            ))?),
+            OutputFormat::Json => Ok(serde_json::to_string(&Self::output_entries(
+                module_results,
+                ontology,
+            ))?),
+        }
+    }
 
-                    // create yaml map for decompressed field
-                    let mut de_map: HashMap<String, serde_yaml::Value> = HashMap::new();
-                    match &module_result.decompressed {
-                        Some(decompressed) => {
-                            match &decompressed.id {
-                                Some(id) => {
-                                    de_map.insert(
-                                        "id".to_string(),
-                                        serde_yaml::Value::String(id.clone()),
-                                    );
-                                }
-                                None => {
-                                    de_map.insert("id".to_string(), serde_yaml::Value::Null);
-                                }
-                            }
-                            match &decompressed.label {
-                                Some(label) => {
-                                    de_map.insert(
-                                        "label".to_string(),
-                                        serde_yaml::Value::String(label.clone()),
-                                    );
-                                }
-                                None => {
-                                    de_map.insert("label".to_string(), serde_yaml::Value::Null);
-                                }
-                            }
-                        }
-                        None => {
-                            de_map.insert("id".to_string(), serde_yaml::Value::Null);
-                            de_map.insert("label".to_string(), serde_yaml::Value::Null);
-                        }
-                    }
+    fn separated_values_string(
+        module_results: &[Self],
+        ontology: Ontology,
+        delimiter: u8,
+    ) -> Result<String> {
+        let mut data = Vec::new();
+        {
+            let mut writer = csv::WriterBuilder::new()
+                .delimiter(delimiter)
+                .from_writer(&mut data);
 
-                    // create yaml map for label and id fields
-                    let mut comp_map: HashMap<String, serde_yaml::Value> = HashMap::new();
-                    match &module_result.id {
-                        Some(id) => {
-                            comp_map
-                                .insert("id".to_string(), serde_yaml::Value::String(id.clone()));
-                        }
-                        None => {
-                            comp_map.insert("id".to_string(), serde_yaml::Value::Null);
-                        }
-                    }
-                    match &module_result.label {
-                        Some(label) => {
-                            comp_map.insert(
-                                "label".to_string(),
-                                serde_yaml::Value::String(label.clone()),
-                            );
-                        }
-                        None => {
-                            comp_map.insert("label".to_string(), serde_yaml::Value::Null);
-                        }
-                    }
+            writer.write_record(result_columns(ontology))?;
 
-                    // add decompressed field to the yaml map
-                    comp_map.insert("decompressed".to_string(), serde_yaml::to_value(de_map)?);
-                    // match &module_result.decompressed {
-                    //     Some(decompressed) => {
-                    //         comp_map.insert("decompressed".to_string(), serde_yaml::to_value(decompressed)?);
-                    //     },
-                    //     None => {
-                    //         comp_map.insert("decompressed".to_string(), serde_yaml::Value::Null);
-                    //     }
-                    // }
-
-                    serialized_map
-                        .insert(target_file_path.clone(), serde_yaml::to_value(comp_map)?);
-                }
-
-                let yaml_str = serde_yaml::to_string(&serialized_map)?;
-                Ok(yaml_str)
-            }
-            OutputFormat::Tsv => csv_serialize(module_results, b'\t'),
-            OutputFormat::Csv => csv_serialize(module_results, b','),
-            OutputFormat::Json => {
-                let mut serialized_map: HashMap<String, serde_json::Value> = HashMap::new();
-                for module_result in module_results {
-                    let target_file_path = &module_result.input;
-
-                    // create json map for decompressed field
-                    let mut de_map: HashMap<String, serde_json::Value> = HashMap::new();
-                    match &module_result.decompressed {
-                        Some(decompressed) => {
-                            match &decompressed.id {
-                                Some(id) => {
-                                    de_map.insert(
-                                        "id".to_string(),
-                                        serde_json::Value::String(id.clone()),
-                                    );
-                                }
-                                None => {
-                                    de_map.insert("id".to_string(), serde_json::Value::Null);
-                                }
-                            }
-                            match &decompressed.label {
-                                Some(label) => {
-                                    de_map.insert(
-                                        "label".to_string(),
-                                        serde_json::Value::String(label.clone()),
-                                    );
-                                }
-                                None => {
-                                    de_map.insert("label".to_string(), serde_json::Value::Null);
-                                }
-                            }
-                        }
-                        None => {
-                            de_map.insert("id".to_string(), serde_json::Value::Null);
-                            de_map.insert("label".to_string(), serde_json::Value::Null);
-                        }
-                    }
-
-                    // create json map for label and id fields
-                    let mut comp_map: HashMap<String, serde_json::Value> = HashMap::new();
-                    match &module_result.id {
-                        Some(id) => {
-                            comp_map
-                                .insert("id".to_string(), serde_json::Value::String(id.clone()));
-                        }
-                        None => {
-                            comp_map.insert("id".to_string(), serde_json::Value::Null);
-                        }
-                    }
-                    match &module_result.label {
-                        Some(label) => {
-                            comp_map.insert(
-                                "label".to_string(),
-                                serde_json::Value::String(label.clone()),
-                            );
-                        }
-                        None => {
-                            comp_map.insert("label".to_string(), serde_json::Value::Null);
-                        }
-                    }
-
-                    // add components field to the json map
-                    comp_map.insert("decompressed".to_string(), serde_json::to_value(de_map)?);
-                    // match &module_result.decompressed {
-                    //     Some(decompressed) => {
-                    //         comp_map.insert("decompressed".to_string(), serde_json::to_value(decompressed)?);
-                    //     },
-                    //     None => {
-                    //         comp_map.insert("decompressed".to_string(), serde_json::Value::Null);
-                    //     }
-                    // }
-
-                    serialized_map
-                        .insert(target_file_path.clone(), serde_json::to_value(comp_map)?);
-                }
-
-                let json_str = serde_json::to_string(&serialized_map)?;
-                Ok(json_str)
+            for module_result in module_results {
+                let decompressed = module_result.decompressed.as_ref();
+                writer.serialize((
+                    &module_result.input,
+                    module_result.format.id(ontology),
+                    module_result.format.label(ontology),
+                    decompressed.and_then(|format| format.id(ontology)),
+                    decompressed.and_then(|format| format.label(ontology)),
+                ))?;
             }
         }
+
+        let data_str = String::from_utf8_lossy(&data);
+        Ok(data_str.into_owned())
+    }
+
+    fn output_entries(
+        module_results: &[Self],
+        ontology: Ontology,
+    ) -> HashMap<&str, OutputEntry<'_>> {
+        module_results
+            .iter()
+            .map(|module_result| {
+                let decompressed = module_result.decompressed.as_ref();
+                (
+                    module_result.input.as_str(),
+                    OutputEntry {
+                        id: module_result.format.id(ontology),
+                        label: module_result.format.label(ontology),
+                        decompressed: OutputTerm {
+                            id: decompressed.and_then(|format| format.id(ontology)),
+                            label: decompressed.and_then(|format| format.label(ontology)),
+                        },
+                    },
+                )
+            })
+            .collect()
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct DecompressedFormat {
-    label: Option<String>,
-    id: Option<String>,
+// The JSON and YAML output share this shape. Building a value map per output format
+// instead would let the two formats drift apart from each other.
+#[derive(Serialize)]
+struct OutputEntry<'a> {
+    id: Option<&'a String>,
+    label: Option<&'a String>,
+    decompressed: OutputTerm<'a>,
+}
+
+#[derive(Serialize)]
+struct OutputTerm<'a> {
+    id: Option<&'a String>,
+    label: Option<&'a String>,
+}
+
+const fn result_columns(ontology: Ontology) -> [&'static str; 5] {
+    match ontology {
+        Ontology::Edam => [
+            "File Path",
+            "Edam ID",
+            "Label",
+            "Decompressed ID",
+            "Decompressed Label",
+        ],
+        Ontology::Bffo => [
+            "File Path",
+            "BFFO ID",
+            "BFFO Label",
+            "Decompressed ID",
+            "Decompressed Label",
+        ],
+    }
 }
 
 // Struct to deserialize the contents of the conf file.
@@ -394,14 +337,12 @@ pub fn run(config: Config, args: Args) -> Result<()> {
 
         let mut module_result = run_modules(target_source, &config, &temp_dir, &invoke_options)?;
 
-        let compressed_format_edam = ModuleResult::from(&compressed_format);
-        // must swap the edam of the module result and the compressed format if decompress has been done.
+        let compressed_format_result = ModuleResult::from(&compressed_format);
         match compressed_format {
             CompressedFormat::None => {}
             CompressedFormat::Bgzf => {}
             _ => {
-                module_result
-                    .swap_edam_of_module_result_and_compressed_format(compressed_format_edam);
+                module_result.wrap_with_compressed_format(compressed_format_result);
             }
         }
 
@@ -421,8 +362,11 @@ pub fn run(config: Config, args: Args) -> Result<()> {
         temp_dir.close()?;
     }
 
-    let result_str =
-        ModuleResult::create_module_results_string(&module_results, args.get_output_format())?;
+    let result_str = ModuleResult::create_module_results_string(
+        &module_results,
+        args.get_output_format(),
+        args.get_ontology(),
+    )?;
 
     // if args.output is Some, write the result to the specified file. Otherwise, write the result to stdout.
     if let Some(output_path) = args.output {

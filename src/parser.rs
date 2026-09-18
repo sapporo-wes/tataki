@@ -89,14 +89,18 @@ pub fn invoke(
         }
     };
 
-    Ok(parser
-        .determine_from_path(target_file_path, options)
-        .unwrap_or_else(|e| {
+    match parser.determine_from_path(target_file_path, options) {
+        Ok(mut module_result) => {
+            module_result.resolve_bffo(Some(module_name));
+            Ok(module_result)
+        }
+        Err(e) => {
             let mut module_result = ModuleResult::with_result(None, None);
             module_result.set_is_ok(false);
             module_result.set_error_message(e.to_string());
-            module_result
-        }))
+            Ok(module_result)
+        }
+    }
 }
 
 #[cfg(test)]

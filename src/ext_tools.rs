@@ -13,6 +13,8 @@ use crate::module::{InvokeOptions, ModuleResult};
 const CWL_INSPECTOR_DOCKER_IMAGE: &str = "ghcr.io/tom-tan/cwl-inspector:v0.1.1";
 const LABEL_KEY: &str = "label";
 const EDAM_ID_KEY: &str = "edam_id";
+const BFFO_LABEL_KEY: &str = "bffo_label";
+const BFFO_ID_KEY: &str = "bffo_id";
 
 pub fn invoke(
     cwl_file_path: &Path,
@@ -127,6 +129,8 @@ pub fn invoke(
         cwl_edam_info.get(LABEL_KEY).map(|s| s.to_string()),
         cwl_edam_info.get(EDAM_ID_KEY).map(|s| s.to_string()),
     );
+
+    set_bffo_from_cwl_or_table(&mut module_result, &cwl_edam_info);
 
     module_result.set_is_ok(cwl_docker_process.status.success());
     if !cwl_docker_process.status.success() {
@@ -258,6 +262,22 @@ fn extract_edam_info_from_fields(cwl_fields: &CwlFields) -> Result<HashMap<Strin
         }
     }
     Ok(extracted_fields)
+}
+
+// The document's own term wins over the table. A half-filled pair is taken as absent
+// rather than reported as it stands, because the table still holds a complete term for
+// the EDAM id.
+fn set_bffo_from_cwl_or_table(
+    module_result: &mut ModuleResult,
+    cwl_edam_info: &HashMap<String, String>,
+) {
+    match (
+        cwl_edam_info.get(BFFO_ID_KEY),
+        cwl_edam_info.get(BFFO_LABEL_KEY),
+    ) {
+        (Some(id), Some(label)) => module_result.set_bffo(Some(id.clone()), Some(label.clone())),
+        _ => module_result.resolve_bffo(None),
+    }
 }
 
 fn validate_id_and_label(parameters: &HashMap<String, String>, cwl_file_path: &Path) -> Result<()> {

@@ -1,12 +1,12 @@
 ./inputs/toy.sam:
-  label: SAM
   id: http://edamontology.org/format_2573
+  label: SAM
   decompressed:
-    label: null
     id: null
+    label: null
 ./inputs/toy.fa:
-  label: FASTA
   id: http://edamontology.org/format_1929
+  label: FASTA
   decompressed:
-    label: null
     id: null
+    label: null
