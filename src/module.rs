@@ -89,208 +89,86 @@ impl ModuleResult {
         module_results: &[Self],
         format: OutputFormat,
     ) -> Result<String> {
-        fn csv_serialize(module_results: &[ModuleResult], delimiter: u8) -> Result<String> {
-            let mut data = Vec::new();
-            {
-                let mut writer = csv::WriterBuilder::new()
-                    .delimiter(delimiter)
-                    .from_writer(&mut data);
-
-                writer.write_record([
-                    "File Path",
-                    "Edam ID",
-                    "Label",
-                    "Decompressed ID",
-                    "Decompressed Label",
-                ])?;
-
-                for module_result in module_results.iter() {
-                    writer.serialize((
-                        &module_result.input,
-                        &module_result.id,
-                        &module_result.label,
-                        &module_result
-                            .decompressed
-                            .as_ref()
-                            .and_then(|d| d.id.as_ref()),
-                        &module_result
-                            .decompressed
-                            .as_ref()
-                            .and_then(|d| d.label.as_ref()),
-                    ))?;
-                }
-            }
-
-            let data_str = String::from_utf8_lossy(&data);
-            Ok(data_str.into_owned())
-        }
-
         match format {
-            OutputFormat::Yaml => {
-                let mut serialized_map: HashMap<String, serde_yaml::Value> = HashMap::new();
-                for module_result in module_results {
-                    let target_file_path = &module_result.input;
+            OutputFormat::Tsv => Self::separated_values_string(module_results, b'\t'),
+            OutputFormat::Csv => Self::separated_values_string(module_results, b','),
+            OutputFormat::Yaml => Ok(serde_yaml::to_string(&Self::output_entries(
+                module_results,
+            ))?),
+            OutputFormat::Json => Ok(serde_json::to_string(&Self::output_entries(
+                module_results,
+            ))?),
+        }
+    }
 
-                    // create yaml map for decompressed field
-                    let mut de_map: HashMap<String, serde_yaml::Value> = HashMap::new();
-                    match &module_result.decompressed {
-                        Some(decompressed) => {
-                            match &decompressed.id {
-                                Some(id) => {
-                                    de_map.insert(
-                                        "id".to_string(),
-                                        serde_yaml::Value::String(id.clone()),
-                                    );
-                                }
-                                None => {
-                                    de_map.insert("id".to_string(), serde_yaml::Value::Null);
-                                }
-                            }
-                            match &decompressed.label {
-                                Some(label) => {
-                                    de_map.insert(
-                                        "label".to_string(),
-                                        serde_yaml::Value::String(label.clone()),
-                                    );
-                                }
-                                None => {
-                                    de_map.insert("label".to_string(), serde_yaml::Value::Null);
-                                }
-                            }
-                        }
-                        None => {
-                            de_map.insert("id".to_string(), serde_yaml::Value::Null);
-                            de_map.insert("label".to_string(), serde_yaml::Value::Null);
-                        }
-                    }
+    fn separated_values_string(module_results: &[Self], delimiter: u8) -> Result<String> {
+        let mut data = Vec::new();
+        {
+            let mut writer = csv::WriterBuilder::new()
+                .delimiter(delimiter)
+                .from_writer(&mut data);
 
-                    // create yaml map for label and id fields
-                    let mut comp_map: HashMap<String, serde_yaml::Value> = HashMap::new();
-                    match &module_result.id {
-                        Some(id) => {
-                            comp_map
-                                .insert("id".to_string(), serde_yaml::Value::String(id.clone()));
-                        }
-                        None => {
-                            comp_map.insert("id".to_string(), serde_yaml::Value::Null);
-                        }
-                    }
-                    match &module_result.label {
-                        Some(label) => {
-                            comp_map.insert(
-                                "label".to_string(),
-                                serde_yaml::Value::String(label.clone()),
-                            );
-                        }
-                        None => {
-                            comp_map.insert("label".to_string(), serde_yaml::Value::Null);
-                        }
-                    }
+            writer.write_record([
+                "File Path",
+                "Edam ID",
+                "Label",
+                "Decompressed ID",
+                "Decompressed Label",
+            ])?;
 
-                    // add decompressed field to the yaml map
-                    comp_map.insert("decompressed".to_string(), serde_yaml::to_value(de_map)?);
-                    // match &module_result.decompressed {
-                    //     Some(decompressed) => {
-                    //         comp_map.insert("decompressed".to_string(), serde_yaml::to_value(decompressed)?);
-                    //     },
-                    //     None => {
-                    //         comp_map.insert("decompressed".to_string(), serde_yaml::Value::Null);
-                    //     }
-                    // }
-
-                    serialized_map
-                        .insert(target_file_path.clone(), serde_yaml::to_value(comp_map)?);
-                }
-
-                let yaml_str = serde_yaml::to_string(&serialized_map)?;
-                Ok(yaml_str)
-            }
-            OutputFormat::Tsv => csv_serialize(module_results, b'\t'),
-            OutputFormat::Csv => csv_serialize(module_results, b','),
-            OutputFormat::Json => {
-                let mut serialized_map: HashMap<String, serde_json::Value> = HashMap::new();
-                for module_result in module_results {
-                    let target_file_path = &module_result.input;
-
-                    // create json map for decompressed field
-                    let mut de_map: HashMap<String, serde_json::Value> = HashMap::new();
-                    match &module_result.decompressed {
-                        Some(decompressed) => {
-                            match &decompressed.id {
-                                Some(id) => {
-                                    de_map.insert(
-                                        "id".to_string(),
-                                        serde_json::Value::String(id.clone()),
-                                    );
-                                }
-                                None => {
-                                    de_map.insert("id".to_string(), serde_json::Value::Null);
-                                }
-                            }
-                            match &decompressed.label {
-                                Some(label) => {
-                                    de_map.insert(
-                                        "label".to_string(),
-                                        serde_json::Value::String(label.clone()),
-                                    );
-                                }
-                                None => {
-                                    de_map.insert("label".to_string(), serde_json::Value::Null);
-                                }
-                            }
-                        }
-                        None => {
-                            de_map.insert("id".to_string(), serde_json::Value::Null);
-                            de_map.insert("label".to_string(), serde_json::Value::Null);
-                        }
-                    }
-
-                    // create json map for label and id fields
-                    let mut comp_map: HashMap<String, serde_json::Value> = HashMap::new();
-                    match &module_result.id {
-                        Some(id) => {
-                            comp_map
-                                .insert("id".to_string(), serde_json::Value::String(id.clone()));
-                        }
-                        None => {
-                            comp_map.insert("id".to_string(), serde_json::Value::Null);
-                        }
-                    }
-                    match &module_result.label {
-                        Some(label) => {
-                            comp_map.insert(
-                                "label".to_string(),
-                                serde_json::Value::String(label.clone()),
-                            );
-                        }
-                        None => {
-                            comp_map.insert("label".to_string(), serde_json::Value::Null);
-                        }
-                    }
-
-                    // add components field to the json map
-                    comp_map.insert("decompressed".to_string(), serde_json::to_value(de_map)?);
-                    // match &module_result.decompressed {
-                    //     Some(decompressed) => {
-                    //         comp_map.insert("decompressed".to_string(), serde_json::to_value(decompressed)?);
-                    //     },
-                    //     None => {
-                    //         comp_map.insert("decompressed".to_string(), serde_json::Value::Null);
-                    //     }
-                    // }
-
-                    serialized_map
-                        .insert(target_file_path.clone(), serde_json::to_value(comp_map)?);
-                }
-
-                let json_str = serde_json::to_string(&serialized_map)?;
-                Ok(json_str)
+            for module_result in module_results {
+                let decompressed = module_result.decompressed.as_ref();
+                writer.serialize((
+                    &module_result.input,
+                    module_result.id.as_ref(),
+                    module_result.label.as_ref(),
+                    decompressed.and_then(|format| format.id.as_ref()),
+                    decompressed.and_then(|format| format.label.as_ref()),
+                ))?;
             }
         }
+
+        let data_str = String::from_utf8_lossy(&data);
+        Ok(data_str.into_owned())
+    }
+
+    fn output_entries(module_results: &[Self]) -> HashMap<&str, OutputEntry<'_>> {
+        module_results
+            .iter()
+            .map(|module_result| {
+                let decompressed = module_result.decompressed.as_ref();
+                (
+                    module_result.input.as_str(),
+                    OutputEntry {
+                        id: module_result.id.as_ref(),
+                        label: module_result.label.as_ref(),
+                        decompressed: OutputTerm {
+                            id: decompressed.and_then(|format| format.id.as_ref()),
+                            label: decompressed.and_then(|format| format.label.as_ref()),
+                        },
+                    },
+                )
+            })
+            .collect()
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+// The JSON and YAML output share this shape. Building a value map per output format
+// instead would let the two formats drift apart from each other.
+#[derive(Serialize)]
+struct OutputEntry<'a> {
+    id: Option<&'a String>,
+    label: Option<&'a String>,
+    decompressed: OutputTerm<'a>,
+}
+
+#[derive(Serialize)]
+struct OutputTerm<'a> {
+    id: Option<&'a String>,
+    label: Option<&'a String>,
+}
+
+#[derive(Debug)]
 pub struct DecompressedFormat {
     label: Option<String>,
     id: Option<String>,
