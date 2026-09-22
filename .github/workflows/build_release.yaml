@@ -6,7 +6,55 @@ on:
       - "v*.*.*"
 
 jobs:
+  guard:
+    name: Validate tag
+    runs-on: ubuntu-latest
+    outputs:
+      is_latest: ${{ steps.check.outputs.is_latest }}
+      is_prerelease: ${{ steps.check.outputs.is_prerelease }}
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v4
+        with:
+          # The whole tag list is needed to tell whether this tag is the highest
+          # version; the default shallow fetch brings only the tag being built.
+          fetch-depth: 0
+
+      - name: "Check the tag and decide whether it is the latest release"
+        id: check
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+
+          cargo_version="v$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)"
+          if [ "$tag" != "$cargo_version" ]; then
+            echo "::error::tag ${tag} does not match Cargo.toml (${cargo_version})"
+            exit 1
+          fi
+
+          # `sort -V` orders v0.2.0 before v0.2.0-alpha, the reverse of semver,
+          # so pre-releases are dropped before the comparison instead of being
+          # sorted alongside the stable tags.
+          highest=$(git tag -l 'v*.*.*' \
+            | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+            | sort -V | tail -1)
+
+          if printf '%s' "$tag" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          if [ "$tag" = "$highest" ]; then
+            echo "is_latest=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_latest=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "tag=${tag} highest=${highest}" >> "$GITHUB_STEP_SUMMARY"
+
   build_binary:
+    needs: [guard]
     name: Build for ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -64,7 +112,7 @@ jobs:
           path: target/${{ matrix.target }}/release/tataki
 
   create_release:
-    needs: [build_binary]
+    needs: [guard, build_binary]
     name: Create release for ${{ matrix.name }}
     runs-on: ubuntu-latest
     strategy:
@@ -84,9 +132,13 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: tataki
           asset_name: tataki-${{ matrix.name }}
+          # Both default to marking every tag as the newest release, which would
+          # hand the Latest badge to a patch cut for an older line.
+          make_latest: ${{ needs.guard.outputs.is_latest }}
+          prerelease: ${{ needs.guard.outputs.is_prerelease }}
 
   deploy_ghcr:
-    needs: [create_release]
+    needs: [guard, create_release]
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout"
@@ -103,6 +155,17 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/tataki
+          # `latest=auto` would still move the tag for a patch on an older line,
+          # because it only asks whether the ref is a stable semver tag.
+          flavor: latest=false
+          tags: |
+            type=ref,event=tag
+            type=raw,value=latest,enable=${{ needs.guard.outputs.is_latest == 'true' }}
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
@@ -111,6 +174,5 @@ jobs:
           push: true
           build-args: |
             TATAKI_VERSION=${{ github.ref_name }}
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/tataki:${{ github.ref_name }}
-            ghcr.io/${{ github.repository_owner }}/tataki:latest
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
