@@ -1,5 +1,9 @@
 FROM debian:bookworm-slim
 
+# No default value: an unset version must break the build instead of quietly
+# installing whatever release happens to be tagged latest at build time.
+ARG TATAKI_VERSION
+
 
 LABEL org.opencontainers.image.authors="Tazro Ohta (tazro.ohta@chiba-u.jp)"
 LABEL org.opencontainers.image.url="https://github.com/sapporo-wes/tataki"
@@ -18,8 +22,10 @@ RUN curl -fsSL -o /tmp/docker.tgz https://download.docker.com/linux/static/stabl
     mv /tmp/docker/* /usr/bin/ && \
     rm -rf /tmp/docker /tmp/docker.tgz
 
-# ADD https://github.com/sapporo-wes/tataki/releases/latest/download/tataki /usr/bin/tataki
-RUN curl -fsSL -o /usr/bin/tataki https://github.com/sapporo-wes/tataki/releases/latest/download/tataki-$(uname -m) && \
+# The binary is pinned to the tag being built rather than fetched from
+# releases/latest, so that rebuilding an old tag yields the binary that tag
+# shipped instead of the newest one.
+RUN curl -fsSL -o /usr/bin/tataki https://github.com/sapporo-wes/tataki/releases/download/${TATAKI_VERSION}/tataki-$(uname -m) && \
     chmod +x /usr/bin/tataki
 
 WORKDIR /app
