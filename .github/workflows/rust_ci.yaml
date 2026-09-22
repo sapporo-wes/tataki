@@ -10,6 +10,8 @@ on:
       - 'src/**'
       - 'tests/**'
       - 'Cargo.**'
+      - 'README.md'
+      - 'scripts/**'
   pull_request:
     branches:
       - main
@@ -52,6 +54,10 @@ jobs:
         run: cargo fmt --all -- --check
       - name: Clippy
         run: cargo clippy --all-targets --all-features -- -D warnings --no-deps
+      - name: Check the README help transcript is up to date
+        run: |
+          ./scripts/update-readme-help.sh
+          git diff --exit-code README.md
 
   test:
     name: cargo test

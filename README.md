@@ -94,6 +94,7 @@ tataki <FILE|URL|'-'>...
 
 For more details:
 
+<!-- BEGIN help -->
 ```shell
 $ tataki --help
 Usage: tataki [OPTIONS] [FILE|URL|'-']...
@@ -118,6 +119,7 @@ Options:
 
 Version: v0.7.0
 ```
+<!-- END help -->
 
 ## Detailed Usage
 
