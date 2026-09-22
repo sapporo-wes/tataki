@@ -4,12 +4,9 @@ FROM debian:bookworm-slim
 # installing whatever release happens to be tagged latest at build time.
 ARG TATAKI_VERSION
 
-
-LABEL org.opencontainers.image.authors="Tazro Ohta (tazro.ohta@chiba-u.jp)"
-LABEL org.opencontainers.image.url="https://github.com/sapporo-wes/tataki"
-LABEL org.opencontainers.image.version="v0.3.0"
-LABEL org.opencontainers.image.licenses="Apache2.0"
-LABEL org.opencontainers.image.description="CLI tool designed primarily for detecting file formats in the bio-science field"
+# The OCI labels are set by docker/metadata-action in
+# .github/workflows/build_release.yaml. Declaring any of them here as well would
+# leave a dead LABEL line, because the labels the workflow passes to buildx win.
 
 RUN apt-get update && apt-get install -y --fix-missing --no-install-recommends\
     curl \

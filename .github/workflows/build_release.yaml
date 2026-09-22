@@ -166,6 +166,13 @@ jobs:
           tags: |
             type=ref,event=tag
             type=raw,value=latest,enable=${{ needs.guard.outputs.is_latest == 'true' }}
+          # title, url, source, version, revision and created are generated.
+          # These three are not: authors is never generated, and description and
+          # licenses would otherwise come from the GitHub repository settings.
+          labels: |
+            org.opencontainers.image.authors=Tazro Ohta (tazro.ohta@chiba-u.jp)
+            org.opencontainers.image.description=CLI tool designed primarily for detecting file formats in the bio-science field
+            org.opencontainers.image.licenses=Apache-2.0
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
